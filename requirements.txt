@@ -26,3 +26,5 @@ Pillow==12.3.0
 
 # Tests
 pytest==9.0.3
+
+psycopg[binary]==3.3.5
