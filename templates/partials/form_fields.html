@@ -1,0 +1,165 @@
+{#
+  Shared add/edit fields.
+  Expects:
+    values       — dict of current field values (may be empty)
+    categories   — list of Category rows
+    selected_cat — slug of the preselected category
+    all_statuses — list of (slug, label, colour)
+    all_tags     — optional list of (Tag, count) for suggestions
+#}
+
+{% set cat_map = {} %}
+{% for category in categories %}{% set _ = cat_map.update({category.slug: category}) %}{% endfor %}
+
+<div class="field full">
+  <label for="f-title">Title / name <span style="color:var(--danger)">*</span></label>
+  <input class="input" id="f-title" name="title" required maxlength="300" autocomplete="off"
+         value="{{ values.title or '' }}" placeholder="e.g. Solo Leveling">
+  <span class="hint">The name you'll recognise. You can look up the official title with “Find metadata”.</span>
+</div>
+
+<div class="field full">
+  <label for="f-url">URL <span style="color:var(--danger)">*</span></label>
+  <div style="display:flex; gap:8px; flex-wrap:wrap">
+    <input class="input" id="f-url" name="url" required maxlength="2048" type="url" inputmode="url"
+           value="{{ values.url or '' }}" placeholder="https://example.com/series/solo-leveling" style="flex:1; min-width:220px">
+    <button class="btn" type="button" id="lookup-btn">✨ Find metadata</button>
+  </div>
+  <span class="hint">Where you read, watch or follow it. Your URL is stored exactly as you enter it and is never rewritten.</span>
+</div>
+
+<div class="lookup-box" id="lookup-box" style="display:none">
+  <div style="font-size:12.5px; font-weight:650; margin-bottom:6px">Metadata lookup</div>
+  <div id="lookup-status" style="font-size:12.5px; color:var(--text-dim)">Looking at the page's public title, image and description.</div>
+  <div class="match-list" id="match-list"></div>
+</div>
+
+<div class="field full">
+  <label>Category <span style="color:var(--danger)">*</span></label>
+  <div class="cat-grid">
+    {% for category in categories %}
+    <label class="cat-option">
+      <input type="radio" name="category" value="{{ category.slug }}" {{ 'checked' if selected_cat == category.slug }}>
+      <span><em>{{ category.icon }}</em>{{ category.name }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+
+{# Hidden maps consumed by the JS to show/hide progress fields per category #}
+{% for category in categories %}
+<div hidden data-fields-for="{{ category.slug }}" data-fields-for-value="{{ category.progress_fields }}"></div>
+<div hidden data-statuses-for="{{ category.slug }}" data-statuses-value="{{ category.status_options }}"></div>
+{% endfor %}
+
+<div class="field full">
+  <label>Status <span style="color:var(--danger)">*</span></label>
+  <div class="status-grid">
+    {% for slug, label, color in all_statuses %}
+    <label class="status-option">
+      <input type="radio" name="status" value="{{ slug }}" {{ 'checked' if values.status == slug or (not values.status and slug == 'following') }}>
+      <span>{{ label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="field full">
+  <label id="progress-heading">Progress</label>
+  <div class="form-grid">
+    <div class="field" id="field-chapter">
+      <label for="f-chapter">Current chapter</label>
+      <input class="input" id="f-chapter" name="chapter" type="number" min="0" max="100000" inputmode="numeric"
+             value="{{ values.chapter or '' }}" placeholder="125">
+    </div>
+    <div class="field" id="field-volume">
+      <label for="f-volume">Current volume</label>
+      <input class="input" id="f-volume" name="volume" type="number" min="0" max="100000" inputmode="numeric"
+             value="{{ values.volume or '' }}" placeholder="12">
+    </div>
+    <div class="field" id="field-season">
+      <label for="f-season">Current season</label>
+      <input class="input" id="f-season" name="season" type="number" min="0" max="200" inputmode="numeric"
+             value="{{ values.season or '' }}" placeholder="2">
+    </div>
+    <div class="field" id="field-episode">
+      <label for="f-episode">Current episode</label>
+      <input class="input" id="f-episode" name="episode" type="number" min="0" max="100000" inputmode="numeric"
+             value="{{ values.episode or '' }}" placeholder="8">
+    </div>
+    <div class="field" id="field-progress_text">
+      <label for="f-progress_text">Custom progress</label>
+      <input class="input" id="f-progress_text" name="progress_text" maxlength="200"
+             value="{{ values.progress_text or '' }}" placeholder="Watched / team / article / course…">
+      <span class="hint">Free text for things chapters don't cover (movies, sports, news, courses).</span>
+    </div>
+    <div class="field" id="field-progress_percent">
+      <label for="f-progress_percent">Progress %</label>
+      <input class="input" id="f-progress_percent" name="progress_percent" type="number" min="0" max="100" step="1" inputmode="numeric"
+             value="{{ values.progress_percent or '' }}" placeholder="65">
+    </div>
+  </div>
+</div>
+
+<div class="field">
+  <label for="f-rating">Rating (optional)</label>
+  <div class="rating-input">
+    <input id="f-rating" name="rating" type="range" min="0" max="10" step="1" value="{{ values.rating or 0 }}">
+    <span class="rating-value" id="rating-value">—</span>
+  </div>
+  <span class="hint">0 clears the rating. 10 is a masterpiece.</span>
+</div>
+
+<div class="field">
+  <label for="f-cover">Cover image URL (optional)</label>
+  <input class="input" id="f-cover" name="cover_image_url" type="url" maxlength="2048" value="{{ values.cover_image_url or '' }}"
+         placeholder="https://…/cover.jpg">
+  <span class="hint">Left blank, we'll try to grab the page's own image. A placeholder is used if neither works.</span>
+  <img id="cover-preview" src="{{ values.cover_image_url or '' }}" alt="Cover preview"
+       style="display:{{ 'block' if values.cover_image_url else 'none' }}; width:88px; height:126px; object-fit:cover; border-radius:9px; margin-top:8px; background:var(--surface-3)">
+</div>
+
+<div class="field full">
+  <label for="f-tags">Tags</label>
+  <input class="input" id="f-tags" name="tags" maxlength="400" value="{{ values.tags or '' }}"
+         placeholder="Action, Fantasy, Isekai…" list="tag-suggestions" autocomplete="off">
+  <span class="hint">Comma separated, up to 12. Use them to filter your library.</span>
+  <div class="tag-row" id="tag-preview" style="margin-top:7px"></div>
+  {% if all_tags %}
+  <datalist id="tag-suggestions">
+    {% for tag, count in all_tags %}<option value="{{ tag.name }}"></option>{% endfor %}
+  </datalist>
+  {% endif %}
+</div>
+
+<div class="field full">
+  <label for="f-description">Description (optional)</label>
+  <textarea class="input" id="f-description" name="description" maxlength="2000" rows="3"
+            placeholder="Short synopsis — filled automatically if the page publishes one.">{{ values.description or '' }}</textarea>
+</div>
+
+<div class="field full">
+  <label for="f-notes">Personal notes</label>
+  <textarea class="input" id="f-notes" name="notes" maxlength="5000" rows="4"
+            placeholder="Where you left off, thoughts, who recommended it…">{{ values.notes or '' }}</textarea>
+</div>
+
+<div class="field">
+  <label for="f-external">External ID (optional)</label>
+  <input class="input" id="f-external" name="external_id" maxlength="80" value="{{ values.external_id or '' }}"
+         placeholder="e.g. MAL id 31456">
+  <span class="hint">Links this item to a public catalogue so episode/release checks are accurate.</span>
+</div>
+
+<div class="field">
+  <label for="f-source">Update check method</label>
+  <select class="input" id="f-source" name="update_source">
+    {% set current_source = values.update_source or 'auto' %}
+    <option value="" {{ 'selected' if current_source == 'auto' }}>Automatic (by category)</option>
+    <option value="page" {{ 'selected' if current_source == 'page' }}>Watch the saved page</option>
+    <option value="jikan" {{ 'selected' if current_source == 'jikan' }}>Anime database (episodes)</option>
+    <option value="tmdb" {{ 'selected' if current_source == 'tmdb' }}>Movie database (releases)</option>
+    <option value="rss" {{ 'selected' if current_source == 'rss' }}>RSS feed</option>
+    <option value="none" {{ 'selected' if current_source == 'none' }}>Don't check this item</option>
+  </select>
+</div>

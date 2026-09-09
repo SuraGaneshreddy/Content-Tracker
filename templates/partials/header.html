@@ -1,0 +1,51 @@
+<header class="header">
+  <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Open menu" type="button">☰</button>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-box" id="global-search" type="search" placeholder="Search your library…  ( / )"
+           autocomplete="off" aria-label="Search library" maxlength="120">
+    <div class="search-results" id="search-results" role="listbox"></div>
+  </div>
+
+  <div class="header-actions">
+    <a class="icon-btn" href="/add" title="Add content" aria-label="Add content">＋</a>
+
+    <a class="icon-btn" href="/updates" title="Updates" aria-label="Updates">
+      🔄
+      {% if pending_updates %}<span class="dot">{{ pending_updates }}</span>{% endif %}
+    </a>
+
+    <a class="icon-btn" href="/notifications" title="Notifications" aria-label="Notifications">
+      🔔
+      {% if unread_count %}<span class="dot" id="nav-unread">{{ unread_count }}</span>{% endif %}
+    </a>
+
+    <button class="icon-btn" id="theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme">
+      {{ '☀' if (theme or 'dark') == 'dark' else '🌙' }}
+    </button>
+
+    <div class="dropdown">
+      <button class="avatar" data-dropdown="user-menu" type="button" aria-label="Account menu">
+        {{ (user.display_name or user.email)[:1]|upper }}
+      </button>
+      <div class="dropdown-menu" id="user-menu">
+        <div class="dropdown-head">
+          <div class="n">{{ user.display_name or 'Your library' }}</div>
+          <div class="e">{{ user.email }}</div>
+        </div>
+        <hr>
+        <a href="/profile"><span>👤</span> Profile & account</a>
+        <a href="/library"><span>📚</span> My Library</a>
+        <a href="/data"><span>💾</span> Backup & export</a>
+        <a href="/settings"><span>⚙️</span> Settings</a>
+        {% if user.role == 'admin' %}<a href="/admin"><span>🛠️</span> System</a>{% endif %}
+        <hr>
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit"><span>🚪</span> Log out</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">✏️ Edit — {{ item.title }}</h1>
+    <p class="page-sub">Changes appear on your dashboard immediately. The previous URL is kept in history.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="/content/{{ item.id }}">← Back to item</a>
+  </div>
+</div>
+
+{% if form_error %}
+<div class="alert alert-error"><span>⚠️</span><span>{{ form_error }}</span></div>
+{% endif %}
+
+{% set selected_cat = item.category.slug if item.category else 'other' %}
+{% set values = form_override if form_override else {
+  'title': item.title,
+  'url': item.url,
+  'status': item.status,
+  'chapter': item.current_chapter,
+  'episode': item.current_episode,
+  'season': item.current_season,
+  'volume': item.current_volume,
+  'progress_text': item.progress_text,
+  'progress_percent': item.progress_percent,
+  'rating': item.rating,
+  'notes': item.notes,
+  'description': item.description,
+  'cover_image_url': item.cover_image_url,
+  'external_id': item.external_id,
+  'update_source': item.update_source,
+  'tags': item.tags|map(attribute='name')|join(', ')
+} %}
+
+<form class="panel" id="content-form" method="post" action="/content/{{ item.id }}/edit" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% include "partials/form_fields.html" %}
+
+  <div style="display:flex; gap:10px; margin-top:6px; flex-wrap:wrap">
+    <button class="btn btn-primary btn-lg" type="submit">💾 Save changes</button>
+    <a class="btn btn-lg" href="/content/{{ item.id }}">Cancel</a>
+    <button class="btn btn-danger btn-lg" type="button" data-delete="{{ item.id }}" data-title="{{ item.title }}">🗑 Delete</button>
+  </div>
+</form>
+
+{% endblock %}

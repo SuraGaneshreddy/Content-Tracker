@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block anon_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark">📚</div>
+      <div class="brand-text">{{ app_name }}<small>Personal</small></div>
+    </div>
+
+    <h1 class="auth-title">Reset your password</h1>
+    <p class="auth-sub">Enter your email and we'll generate a reset link.</p>
+
+    {% if error %}<div class="alert alert-error"><span>⚠️</span><span>{{ error }}</span></div>{% endif %}
+
+    {% if sent %}
+    <div class="alert alert-success"><span>✅</span><span>{{ notice }}</span></div>
+    {% if reset_link %}
+    <div class="alert alert-info">
+      <span>🔗</span>
+      <span>
+        <strong>Development mode:</strong> no mail server is configured, so your link is shown here.
+        In production, wire an SMTP provider into <code>app/routers/auth.py</code> and it will be emailed instead.
+        <br><a href="{{ reset_link }}" style="color:var(--accent); word-break:break-all; font-weight:600">{{ reset_link }}</a>
+        <br><span style="color:var(--text-faint); font-size:12px">Valid for 30 minutes and single-use.</span>
+      </span>
+    </div>
+    {% endif %}
+    {% else %}
+    <form class="auth-form" method="post" action="/forgot-password">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="username" required autofocus
+               value="{{ form.email or '' }}" placeholder="you@example.com">
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Send reset link</button>
+    </form>
+    {% endif %}
+
+    <div class="auth-foot">
+      <a href="/login">← Back to sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

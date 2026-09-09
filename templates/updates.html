@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">🔄 Updates</h1>
+    <p class="page-sub">Verified new chapters, episodes and releases for the things you follow.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn" type="button" id="run-checks">🔄 Check now</button>
+    {% if items %}
+    <button class="btn btn-ghost" type="button" id="mark-all-read">Mark all read</button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="alert alert-info"><span>ℹ️</span>
+  <span>An update is only shown when a source confirms it — chapter numbers from the page you saved, episode lists
+  from the public anime database, or release dates from the movie database. If a source can't be reached, nothing is claimed.</span>
+</div>
+
+{% if items %}
+<div class="panel">
+  <div class="panel-head">
+    <h2 class="panel-title">🔔 New updates ({{ items|length }})</h2>
+  </div>
+  <div class="grid">
+    {% for item in items %}{% include "partials/content_card.html" %}{% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="empty">
+  <div class="icon">🔔</div>
+  <h3>No pending updates</h3>
+  <p>When a saved item gets a new chapter, episode or release, it will appear here.</p>
+  <button class="btn btn-primary" type="button" id="run-checks">🔄 Check now</button>
+</div>
+{% endif %}
+
+{% if broken %}
+<div class="panel" style="border-color: color-mix(in srgb, var(--danger) 30%, var(--border))">
+  <div class="panel-head"><h2 class="panel-title">⚠ Link health</h2></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Item</th><th>Status</th><th>Last checked</th><th></th></tr></thead>
+      <tbody>
+      {% for item in broken %}
+        <tr>
+          <td><a href="/content/{{ item.id }}" style="font-weight:600">{{ item.title }}</a><div style="font-size:11.5px; color:var(--text-faint)">{{ item.url[:70] }}{% if item.url|length > 70 %}…{% endif %}</div></td>
+          <td>{{ url_status_icons[item.url_status] }} {{ url_status_labels[item.url_status] }}{% if item.url_status_code %} ({{ item.url_status_code }}){% endif %}</td>
+          <td style="color:var(--text-faint)">{{ item.url_last_checked_at|relativetime }}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm" type="button" data-check-url="{{ item.id }}">Re-check</button>
+            <a class="btn btn-sm" href="/content/{{ item.id }}/alternatives">Find alternative</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if history %}
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Update history</h2></div>
+  <div class="activity-list">
+    {% for row in history %}
+    <div class="activity-item">
+      <span class="activity-icon">🔔</span>
+      <div style="min-width:0; flex:1">
+        <div class="activity-text"><strong>{{ row.label }}</strong>{% if row.detail %} — {{ row.detail }}{% endif %}</div>
+        <div class="activity-time">{{ row.detected_at|relativetime }}{% if row.source %} · {{ row.source }}{% endif %} · {{ row.state }}</div>
+      </div>
+      <a class="btn btn-sm btn-ghost" href="/content/{{ row.content_id }}">Open</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Browse public updates by category</h2></div>
+  <div class="chips">
+    <a class="chip" href="/updates/anime">🎬 Anime</a>
+    <a class="chip" href="/updates/manga">📖 Manga</a>
+    <a class="chip" href="/updates/manhwa">📘 Manhwa</a>
+    <a class="chip" href="/updates/manhua">📗 Manhua</a>
+    <a class="chip" href="/updates/movies">🎥 Movies</a>
+    <a class="chip" href="/updates/sports">⚽ Sports</a>
+    <a class="chip" href="/updates/news">📰 News</a>
+    <a class="chip" href="/updates/coding">💻 Coding</a>
+  </div>
+</div>
+
+{% endblock %}

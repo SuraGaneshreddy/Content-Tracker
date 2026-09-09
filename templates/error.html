@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ status_code }} — {{ app_name if app_name else 'Personal Content Tracker' }}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('pct-theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card" style="text-align:center">
+    <div style="font-size:52px; margin-bottom:8px">{{ '🔍' if status_code == 404 else ('🔒' if status_code in [401, 403] else '⚠️') }}</div>
+    <div style="font-size:44px; font-weight:800; letter-spacing:-0.03em; color:var(--accent)">{{ status_code }}</div>
+    <h1 class="auth-title" style="margin-top:4px">{{ message }}</h1>
+    {% if detail %}<p class="auth-sub">{{ detail }}</p>{% else %}<p class="auth-sub">If this keeps happening, check the server log for details.</p>{% endif %}
+    <div style="display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-top:6px">
+      <a class="btn btn-primary" href="/">← Back to dashboard</a>
+      <a class="btn" href="/library">My library</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block anon_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark">📚</div>
+      <div class="brand-text">{{ app_name }}<small>Personal</small></div>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to your library.</p>
+
+    {% if request.query_params.get('reset') %}
+    <div class="alert alert-success"><span>✅</span><span>Password changed. You can sign in now.</span></div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert-error"><span>⚠️</span><span>{{ error }}</span></div>
+    {% endif %}
+
+    <form class="auth-form" method="post" action="/login">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="username" required autofocus
+               value="{{ form.email or '' }}" placeholder="you@example.com">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required
+               placeholder="••••••••">
+      </div>
+
+      <div class="auth-links">
+        <label class="checkline"><input type="checkbox" name="remember" value="true"> Remember me</label>
+        <a href="/forgot-password">Forgot password?</a>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Sign in</button>
+    </form>
+
+    <div class="auth-foot">
+      Don't have an account? <a href="/register">Create one</a>
+    </div>
+
+    <ul class="feature-list">
+      <li><span>🔒</span> Argon2id password hashing, signed HttpOnly session cookies</li>
+      <li><span>📚</span> Manga, manhwa, manhua, anime, movies, sports, news & coding in one place</li>
+      <li><span>🔔</span> Verified update alerts and automatic link health checks</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

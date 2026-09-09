@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">⚙️ Settings</h1>
+    <p class="page-sub">Appearance, automatic checks and notification preferences.</p>
+  </div>
+</div>
+
+{% if message == 'saved' %}<div class="alert alert-success" data-autohide><span>✅</span><span>Settings saved.</span></div>{% endif %}
+
+<form class="panel" method="post" action="/settings">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="panel-head"><h2 class="panel-title">Appearance</h2></div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Theme</label>
+      <div class="status-grid">
+        <label class="status-option"><input type="radio" name="theme" value="dark" {{ 'checked' if prefs.theme == 'dark' }}><span>🌙 Dark</span></label>
+        <label class="status-option"><input type="radio" name="theme" value="light" {{ 'checked' if prefs.theme == 'light' }}><span>☀ Light</span></label>
+      </div>
+      <span class="hint">Your choice is remembered on this device and in your account.</span>
+    </div>
+    <div class="field">
+      <label>Default layout</label>
+      <div class="status-grid">
+        <label class="status-option"><input type="radio" name="default_view" value="grid" {{ 'checked' if prefs.default_view == 'grid' }}><span>▦ Grid</span></label>
+        <label class="status-option"><input type="radio" name="default_view" value="list" {{ 'checked' if prefs.default_view == 'list' }}><span>☰ List</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label for="s-per-page">Items per page</label>
+      <select class="input" id="s-per-page" name="items_per_page">
+        {% for value in [12, 24, 48, 96] %}<option value="{{ value }}" {{ 'selected' if prefs.items_per_page == value }}>{{ value }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="s-cat">Default category for new items</label>
+      <select class="input" id="s-cat" name="default_category">
+        <option value="">No default</option>
+        {% for category in categories %}
+        <option value="{{ category.slug }}" {{ 'selected' if prefs.default_category == category.slug }}>{{ category.icon }} {{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="panel-head" style="margin-top:20px"><h2 class="panel-title">Automatic checks</h2></div>
+  <div class="form-grid">
+    <div class="field">
+      <label class="checkline"><input type="checkbox" name="auto_check_urls" {{ 'checked' if prefs.auto_check_urls }}> Check link health automatically</label>
+      <span class="hint">Visited at most once every {{ 24 }} hours per link, throttled per site.</span>
+    </div>
+    <div class="field">
+      <label class="checkline"><input type="checkbox" name="auto_check_updates" {{ 'checked' if prefs.auto_check_updates }}> Check for new chapters / episodes</label>
+    </div>
+    <div class="field">
+      <label for="s-interval">Check interval (minutes)</label>
+      <input class="input" id="s-interval" name="check_interval_minutes" type="number" min="15" max="1440" value="{{ prefs.check_interval_minutes }}">
+      <span class="hint">How often the background job runs. Higher is gentler on external sites.</span>
+    </div>
+    <div class="field">
+      <label class="checkline"><input type="checkbox" name="notify_new_update" {{ 'checked' if prefs.notify_new_update }}> Notify me about new updates</label>
+      <label class="checkline"><input type="checkbox" name="notify_broken_url" {{ 'checked' if prefs.notify_broken_url }}> Notify me about broken links</label>
+    </div>
+  </div>
+
+  <div style="margin-top:18px"><button class="btn btn-primary btn-lg" type="submit">Save settings</button></div>
+</form>
+
+<div class="two-col">
+  <div class="panel">
+    <div class="panel-head"><h2 class="panel-title">Data sources</h2></div>
+    <div class="kv">
+      <dt>Anime database</dt><dd>{{ '✅ Enabled (Jikan / MyAnimeList)' if integrations.jikan else '⚪ Disabled' }}</dd>
+      <dt>Movie database</dt><dd>{{ '✅ Enabled (TMDB)' if integrations.tmdb else '⚪ Not configured — add TMDB_API_KEY to .env' }}</dd>
+      <dt>RSS feeds</dt><dd>{{ '✅ Enabled' if integrations.rss else '⚪ Disabled' }}</dd>
+      <dt>Sports feeds</dt><dd>{{ '✅ Enabled' if integrations.espn else '⚪ Disabled' }}</dd>
+    </div>
+    <p style="font-size:12.5px; color:var(--text-faint); margin:12px 0 0">
+      Every integration is optional. Without keys the app still works: your own saved links, progress and notes are
+      all stored locally, and metadata is read from the pages you save.
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2 class="panel-title">Cover cache</h2></div>
+    <p style="margin:0 0 10px; font-size:13.5px; color:var(--text-dim)">
+      {{ cache.count }} cached image{{ '' if cache.count == 1 else 's' }} · {{ cache.mb }} MB
+    </p>
+    <p style="margin:0 0 12px; font-size:12.5px; color:var(--text-faint)">
+      Covers are downloaded once and served from your own server, so sites you bookmarked never see your browser
+      loading images from them.
+    </p>
+    <button class="btn btn-danger" type="button"
+            onclick="if(confirm('Clear the cover image cache? Images will be re-downloaded on next view.')) { fetch('/api/cache/clear', {method:'POST', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(r=>r.json()).then(d=>{ if(d.ok){ location.reload(); } }) }">
+      Clear cache
+    </button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Your data</h2></div>
+  <div style="display:flex; gap:9px; flex-wrap:wrap">
+    <a class="btn" href="/export/json">⬇ Export JSON</a>
+    <a class="btn" href="/export/csv">⬇ Export CSV</a>
+    <a class="btn" href="/backup">💾 Download backup</a>
+    <a class="btn" href="/data">📥 Import</a>
+    <a class="btn btn-ghost" href="/profile">👤 Profile & security</a>
+  </div>
+</div>
+
+{% endblock %}

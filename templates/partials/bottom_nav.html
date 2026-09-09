@@ -1,0 +1,11 @@
+<nav class="bottom-nav" aria-label="Quick navigation">
+  <a href="/" class="{{ 'active' if active_path == '/' }}"><span class="nav-icon">🏠</span>Home</a>
+  <a href="/library" class="{{ 'active' if active_path.startswith('/library') }}"><span class="nav-icon">📚</span>Library</a>
+  <a href="/updates" class="{{ 'active' if active_path.startswith('/updates') }}"><span class="nav-icon">🔄</span>Updates</a>
+  <a href="/notifications" class="{{ 'active' if active_path.startswith('/notifications') }}">
+    <span class="nav-icon">🔔</span>Alerts
+  </a>
+  <a href="/settings" class="{{ 'active' if active_path.startswith('/settings') }}"><span class="nav-icon">⚙️</span>More</a>
+</nav>
+
+<a class="fab" href="/add" aria-label="Add content">＋</a>

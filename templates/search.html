@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">🔍 Search</h1>
+    <p class="page-sub">{% if term %}{{ results|length }} result{{ '' if results|length == 1 else 's' }} for “{{ term }}”{% else %}Search titles, notes, tags, categories and URLs.{% endif %}</p>
+  </div>
+</div>
+
+<form class="toolbar" method="get" action="/search">
+  <input class="input" style="flex:1; min-width:220px" type="search" name="q" value="{{ term or '' }}" placeholder="Try “Solo”, “Cricket”, “Chapter 120”…" autofocus>
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+
+{% if results %}
+<div class="grid">
+  {% for row in results %}
+  <article class="card">
+    <a class="card-cover" href="{{ row.url }}">
+      {% if row.cover %}
+        <img src="{{ row.cover }}" alt="" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+        <div class="placeholder" style="display:none; background:linear-gradient(140deg,#6366f155,#0f172a)">{{ row.title|initials }}</div>
+      {% else %}
+        <div class="placeholder" style="background:linear-gradient(140deg,#6366f166,#0f172a)">{{ row.title|initials }}</div>
+      {% endif %}
+      <span class="card-cat">{{ row.icon }} {{ row.category }}</span>
+    </a>
+    <div class="card-body">
+      <a class="card-title" href="{{ row.url }}">{{ row.title }}</a>
+      <div class="card-row"><span class="pill pill-mute">{{ row.status }}</span></div>
+      {% if row.progress %}<div class="card-row"><span class="k">📈</span> {{ row.progress }}</div>{% endif %}
+      <div class="card-actions">
+        <a class="btn btn-sm" href="{{ row.url }}">Open</a>
+        <a class="btn btn-sm" href="{{ row.url }}/edit">Edit</a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% elif term %}
+<div class="empty">
+  <div class="icon">🔍</div>
+  <h3>No matches for “{{ term }}”</h3>
+  <p>Search covers titles, notes, descriptions, tags and URLs.</p>
+  <a class="btn btn-primary" href="/add">＋ Add it to your library</a>
+</div>
+{% else %}
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Try searching for</h2></div>
+  <div class="chips">
+    {% for category in categories %}
+    <a class="chip" href="/search?q={{ category.name }}">{{ category.icon }} {{ category.name }}</a>
+    {% endfor %}
+  </div>
+  <p style="font-size:12.5px; color:var(--text-faint); margin:12px 0 0">
+    Tip: press <kbd style="background:var(--surface-3); padding:1px 6px; border-radius:5px">/</kbd> anywhere to jump to the search box.
+  </p>
+</div>
+{% endif %}
+
+{% endblock %}

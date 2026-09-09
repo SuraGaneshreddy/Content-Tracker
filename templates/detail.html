@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if message %}
+<div class="alert alert-success" data-autohide><span>✅</span><span>
+  {% if message == 'added' %}Saved to your library.
+  {% elif message == 'updated' %}Changes saved.
+  {% elif message == 'url-updated' %}URL replaced. The old link is still in the history below.
+  {% else %}Done.{% endif %}
+</span></div>
+{% endif %}
+
+<div class="detail-hero">
+  <div class="detail-cover">
+    {% if item.cover_src %}
+      <img src="{{ item.cover_src }}" alt="{{ item.title }} cover"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+      <div class="placeholder" style="display:none; background: linear-gradient(140deg, {{ item.category.accent }}55, #0f172a)">{{ item.title|initials }}</div>
+    {% else %}
+      <div class="placeholder" style="background: linear-gradient(140deg, {{ item.category.accent }}66, #0f172a)">{{ item.title|initials }}</div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="detail-badges">
+      <span class="pill" style="background: color-mix(in srgb, {{ item.category.accent }} 18%, transparent); color: {{ item.category.accent }}">
+        {{ item.category.icon }} {{ item.category.name }}
+      </span>
+      <span class="pill" style="background: color-mix(in srgb, {{ item.status|statuscolor }} 18%, transparent); color: {{ item.status|statuscolor }}">
+        {{ item.status|statuslabel }}
+      </span>
+      <span class="pill {{ 'pill-bad' if item.url_status == 'broken' else ('pill-warn' if item.url_status == 'degraded' else ('pill-ok' if item.url_status == 'ok' else 'pill-mute')) }}"
+            data-url-badge="{{ item.id }}">
+        {{ url_status_icons[item.url_status] }} {{ url_status_labels[item.url_status] }}
+      </span>
+      {% if item.update_available and item.update_state == 'unread' %}
+        <span class="pill pill-warn">🔔 {{ item.latest_available }}</span>
+      {% endif %}
+    </div>
+
+    <h1 class="detail-title">{{ item.title }}</h1>
+
+    {% if item.description %}
+    <p style="color:var(--text-dim); margin:0 0 12px; max-width:70ch">{{ item.description }}</p>
+    {% endif %}
+
+    <div style="display:flex; gap:18px; flex-wrap:wrap; font-size:13.5px; color:var(--text-dim); margin-bottom:6px">
+      <span>📈 <strong data-progress-label>{{ progress or '—' }}</strong></span>
+      {% if item.rating %}<span class="card-rating">⭐ {{ item.rating }}/10 <span style="color:var(--star); font-size:12px">{{ item.rating|stars }}</span></span>{% endif %}
+      {% if item.open_count %}<span>🔗 Opened {{ item.open_count }}×</span>{% endif %}
+    </div>
+
+    {% if item.tags %}
+    <div class="tag-row" style="margin:10px 0">
+      {% for tag in item.tags %}<a class="tag" href="/library?tag={{ tag.name|urlencode }}">#{{ tag.name }}</a>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="detail-actions">
+      <a class="btn btn-primary" href="{{ item.url }}" target="_blank" rel="noopener noreferrer nofollow" data-open-track="{{ item.id }}">🔗 Open</a>
+      <a class="btn" href="/content/{{ item.id }}/edit">✏️ Edit</a>
+      <button class="btn {{ 'btn-ghost' if not item.is_favorite }}" type="button" data-favorite="{{ item.id }}"
+              aria-pressed="{{ 'true' if item.is_favorite else 'false' }}">
+        {{ '★ Favorited' if item.is_favorite else '☆ Favorite' }}
+      </button>
+      <button class="btn" type="button" data-check-url="{{ item.id }}">🩺 Check link</button>
+      <button class="btn" type="button" data-check-update="{{ item.id }}">🔄 Check for updates</button>
+      <button class="btn btn-danger" type="button" data-delete="{{ item.id }}" data-title="{{ item.title }}">🗑 Delete</button>
+    </div>
+
+    {% if item.url_status in ['broken', 'degraded'] %}
+    <div class="alert alert-warn" style="margin-top:14px">
+      <span>⚠️</span>
+      <span>
+        <strong>This link may no longer be working.</strong>
+        {% if item.url_last_error %} {{ item.url_last_error }}{% endif %}
+        <br>
+        <a class="btn btn-sm" style="margin-top:8px" href="/content/{{ item.id }}/alternatives">🔎 Find Alternative</a>
+      </span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ------------------------------------------------------ quick progress #}
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Update progress</h2></div>
+  <form class="quick-progress" id="quick-progress-form" data-id="{{ item.id }}">
+    {% set fields = item.category.progress_field_list() %}
+    {% if 'chapter' in fields %}
+    <div class="field"><label>Chapter</label><input class="input" name="chapter" type="number" min="0" value="{{ item.current_chapter or '' }}"></div>
+    {% endif %}
+    {% if 'volume' in fields %}
+    <div class="field"><label>Volume</label><input class="input" name="volume" type="number" min="0" value="{{ item.current_volume or '' }}"></div>
+    {% endif %}
+    {% if 'season' in fields %}
+    <div class="field"><label>Season</label><input class="input" name="season" type="number" min="0" value="{{ item.current_season or '' }}"></div>
+    {% endif %}
+    {% if 'episode' in fields %}
+    <div class="field"><label>Episode</label><input class="input" name="episode" type="number" min="0" value="{{ item.current_episode or '' }}"></div>
+    {% endif %}
+    {% if 'custom' in fields or not fields %}
+    <div class="field"><label>Progress</label><input class="input" name="progress_text" maxlength="200" value="{{ item.progress_text or '' }}" placeholder="Watched / team / article…"></div>
+    {% endif %}
+    {% if 'percent' in fields %}
+    <div class="field"><label>%</label><input class="input" name="progress_percent" type="number" min="0" max="100" value="{{ item.progress_percent|int if item.progress_percent is not none else '' }}"></div>
+    {% endif %}
+    <div class="field">
+      <label>Status</label>
+      <select class="input" name="status">
+        {% for slug in (item.category.status_option_list() or ['following']) %}
+        <option value="{{ slug }}" {{ 'selected' if item.status == slug }}>{{ slug|statuslabel }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Save progress</button>
+  </form>
+</div>
+
+{# --------------------------------------------------------- alternatives #}
+{% if alternatives %}
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">🔎 Alternative sources</h2></div>
+  <div class="alert alert-info"><span>ℹ️</span><span>{{ alternatives_disclaimer }}</span></div>
+
+  <div class="match-list">
+    {% for suggestion in alternatives %}
+    <div class="match" style="cursor:default">
+      {% if suggestion.image_url %}<img src="{{ suggestion.image_url }}" alt="" loading="lazy">{% endif %}
+      <div style="flex:1; min-width:0">
+        <div class="t">{{ suggestion.title }}</div>
+        <div class="s">{{ suggestion.source }} · {{ suggestion.reason }}{% if suggestion.note %} · {{ suggestion.note }}{% endif %}</div>
+        <div class="s" style="word-break:break-all">{{ suggestion.url }}</div>
+      </div>
+      <form method="post" action="/content/{{ item.id }}/use-alternative" style="display:flex; gap:6px; align-items:center">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="new_url" value="{{ suggestion.url }}">
+        <a class="btn btn-sm" href="{{ suggestion.url }}" target="_blank" rel="noopener noreferrer nofollow">Preview</a>
+        <button class="btn btn-sm btn-primary" type="submit"
+                onclick="return confirm('Replace the current URL with this one?\n\n{{ suggestion.url }}\n\nYour old link is kept in history.')">Use this URL</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="two-col">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Details</h2></div>
+      <dl class="kv">
+        <dt>Original URL</dt><dd><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer nofollow" style="word-break:break-all; color:var(--accent)">{{ item.url }}</a></dd>
+        <dt>Progress</dt><dd>{{ progress or '—' }}{% if item.latest_available and not item.update_available %} <span style="color:var(--text-faint)">({{ item.latest_available }})</span>{% endif %}</dd>
+        <dt>Status</dt><dd>{{ item.status|statuslabel }}</dd>
+        <dt>Rating</dt><dd>{% if item.rating %}{{ item.rating }}/10{% else %}Not rated{% endif %}</dd>
+        <dt>Category</dt><dd>{{ item.category.icon }} {{ item.category.name }}</dd>
+        <dt>Tags</dt><dd>{% if item.tags %}{% for tag in item.tags %}<span class="tag">#{{ tag.name }}</span> {% endfor %}{% else %}—{% endif %}</dd>
+        <dt>Date added</dt><dd>{{ item.created_at.strftime('%d %b %Y, %H:%M') }}</dd>
+        <dt>Last updated</dt><dd>{{ item.updated_at|relativetime }}</dd>
+        <dt>Last opened</dt><dd>{% if item.last_opened_at %}{{ item.last_opened_at|relativetime }} ({{ item.open_count }}× total){% else %}Never{% endif %}</dd>
+        <dt>Link health</dt><dd>
+          {{ url_status_icons[item.url_status] }} {{ url_status_labels[item.url_status] }}
+          {% if item.url_status_code %}(HTTP {{ item.url_status_code }}){% endif %}
+          {% if item.url_last_checked_at %}· checked {{ item.url_last_checked_at|relativetime }}{% endif %}
+          {% if item.url_last_error %}<br><span style="color:var(--text-faint)">{{ item.url_last_error }}</span>{% endif %}
+        </dd>
+        <dt>Update check</dt><dd>
+          {% if item.update_source == 'none' %}Disabled for this item
+          {% elif item.update_last_checked_at %}Last checked {{ item.update_last_checked_at|relativetime }}
+          {% else %}Not checked yet{% endif %}
+          {% if item.update_last_error %}<br><span style="color:var(--text-faint)">{{ item.update_last_error }}</span>{% endif %}
+        </dd>
+        {% if item.external_id %}<dt>External ID</dt><dd>{{ item.external_id }}</dd>{% endif %}
+      </dl>
+
+      {% if item.notes %}
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border-soft)">
+        <div style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:600; margin-bottom:6px">Notes</div>
+        <div style="white-space:pre-wrap; font-size:13.5px; color:var(--text-dim)">{{ item.notes }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if update_history %}
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Update history</h2></div>
+      <div class="activity-list">
+        {% for row in update_history %}
+        <div class="activity-item">
+          <span class="activity-icon">🔔</span>
+          <div style="min-width:0">
+            <div class="activity-text"><strong>{{ row.label }}</strong>{% if row.detail %} — {{ row.detail }}{% endif %}</div>
+            <div class="activity-time">{{ row.detected_at|relativetime }}{% if row.source %} · {{ row.source }}{% endif %} · {{ row.state }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">URL history</h2>
+        <span style="margin-left:auto; font-size:12px; color:var(--text-faint)">never auto-deleted</span>
+      </div>
+      {% if url_history %}
+      <div class="activity-list">
+        {% for row in url_history %}
+        <div class="activity-item">
+          <span class="activity-icon">{{ '🟢' if row.is_current else '🕘' }}</span>
+          <div style="min-width:0; flex:1">
+            <div style="font-size:12.5px; word-break:break-all; color:{{ 'var(--accent)' if row.is_current else 'var(--text-dim)' }}">{{ row.url }}</div>
+            <div class="activity-time">
+              {% if row.is_current %}Current{% else %}Replaced {{ row.replaced_at|relativetime if row.replaced_at else '' }}{% endif %}
+              · added {{ row.added_at|relativetime }}
+              {% if row.status and row.status != 'unknown' %} · {{ url_status_icons[row.status] }} {{ url_status_labels[row.status] }}{% endif %}
+              {% if row.source and row.source != 'user' %} · {{ row.source }}{% endif %}
+            </div>
+          </div>
+          {% if not row.is_current %}
+          <button class="btn btn-sm btn-ghost" type="button"
+                  onclick="if (confirm('Remove this URL from history?')) { fetch('/api/url-history/{{ row.id }}', {method:'DELETE', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(r=>r.json()).then(d=>{ if(d.ok){ this.closest('.activity-item').remove(); } else { alert(d.error || 'Could not remove.'); } }) }">
+            ✕
+          </button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<p style="color:var(--text-faint); font-size:13px; margin:0">No history yet.</p>{% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Update alerts</h2></div>
+      {% if item.update_available %}
+      <div class="alert alert-warn"><span>🔔</span><span><strong>{{ item.latest_available }}</strong> is available.<br>You're on {{ progress or 'nothing yet' }}.</span></div>
+      {% endif %}
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <button class="btn btn-block" type="button" data-check-update="{{ item.id }}">🔄 Check now</button>
+        {% if item.update_available %}
+        <button class="btn btn-block" type="button" data-update-state="read" data-content-id="{{ item.id }}">Mark as read</button>
+        <button class="btn btn-block btn-ghost" type="button" data-update-state="ignored" data-content-id="{{ item.id }}">Ignore this update</button>
+        {% endif %}
+        <a class="btn btn-block btn-ghost" href="/updates">All updates</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

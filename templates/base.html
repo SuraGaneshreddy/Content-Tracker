@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme or 'dark' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="{{ '#0b1020' if (theme or 'dark') == 'dark' else '#f4f6fb' }}">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{{ title or app_name }}{% endblock %} · {{ app_name }}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>📚</text></svg>">
+  <script>
+    /* Apply the saved theme before first paint to avoid a flash. */
+    (function () {
+      try {
+        var saved = localStorage.getItem('pct-theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="{{ 'list-view' if prefs and prefs.default_view == 'list' else '' }}">
+{% if user %}
+<div class="app">
+  {% include "partials/sidebar.html" %}
+  <div class="main">
+    {% include "partials/header.html" %}
+    <main class="content" id="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% include "partials/bottom_nav.html" %}
+</div>
+<div class="scrim" id="scrim"></div>
+<div id="toasts"></div>
+
+<div class="modal-backdrop" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-message"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+{% else %}
+<main>{% block anon_content %}{% endblock %}</main>
+<div id="toasts"></div>
+{% endif %}
+<script src="/static/js/app.js"></script>
+</body>
+</html>

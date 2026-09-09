@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">🗑️ Trash</h1>
+    <p class="page-sub">Deleted items stay here until you empty it. Nothing is lost by accident.</p>
+  </div>
+  {% if items %}
+  <div class="page-actions">
+    <form method="post" action="/trash/empty" onsubmit="return confirm('Permanently delete all {{ items|length }} item(s) in the Trash? This cannot be undone.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-danger" type="submit">🔥 Empty trash</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% if request.query_params.get('emptied') %}
+<div class="alert alert-success" data-autohide><span>✅</span><span>Trash emptied ({{ request.query_params.get('emptied') }} items removed).</span></div>
+{% endif %}
+
+{% if items %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Deleted</th><th></th></tr></thead>
+    <tbody>
+    {% for item in items %}
+      <tr class="row-item">
+        <td>
+          <div style="display:flex; gap:10px; align-items:center">
+            {% if item.cover_src %}<img src="{{ item.cover_src }}" alt="" style="width:32px; height:46px; object-fit:cover; border-radius:5px">{% endif %}
+            <div><a href="/content/{{ item.id }}" style="font-weight:600">{{ item.title }}</a>
+            <div style="font-size:11.5px; color:var(--text-faint)">{{ item|progress_label or '—' }}</div></div>
+          </div>
+        </td>
+        <td>{{ item.category.icon }} {{ item.category.name }}</td>
+        <td>{{ item.status|statuslabel }}</td>
+        <td style="color:var(--text-faint)">{{ item.deleted_at|relativetime }}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" type="button" data-restore="{{ item.id }}">♻ Restore</button>
+          <button class="btn btn-sm btn-danger" type="button" data-delete="{{ item.id }}" data-hard="1" data-title="{{ item.title }}">Delete forever</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">
+  <div class="icon">🗑️</div>
+  <h3>Trash is empty</h3>
+  <p>Anything you delete lands here first, so you can always get it back.</p>
+  <a class="btn btn-primary" href="/library">Back to library</a>
+</div>
+{% endif %}
+
+{% endblock %}

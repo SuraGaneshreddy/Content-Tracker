@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{{ source_note }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="/updates">← All updates</a>
+    <button class="btn btn-primary" type="button" id="run-checks">🔄 Check now</button>
+  </div>
+</div>
+
+{% if filters %}
+<div class="toolbar">
+  <span style="font-size:12px; color:var(--text-faint); font-weight:600">{{ filters.name|upper }}</span>
+  <div class="chips">
+    {% for option in filters.options %}
+    <a class="chip {{ 'active' if filters.current == option.code }}" href="?{{ filters.param }}={{ option.code }}">{{ option.name }}</a>
+    {% endfor %}
+  </div>
+  {% if second_filter %}
+  <span style="font-size:12px; color:var(--text-faint); font-weight:600; margin-left:10px">{{ second_filter.name|upper }}</span>
+  <div class="chips">
+    {% for option in second_filter.options %}
+    <a class="chip {{ 'active' if second_filter.current == option.code }}" href="?{{ filters.param }}={{ filters.current }}&{{ second_filter.param }}={{ option.code }}">{{ option.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if not available %}
+<div class="alert alert-warn"><span>⚠️</span><span>{{ unavailable_reason }} Your saved items below still work as normal.</span></div>
+{% endif %}
+
+{# Bracket syntax on purpose: `section.items` would resolve to dict.items(). #}
+{% for section in sections %}
+  {% if section["items"] %}
+  <div class="panel">
+    <div class="panel-head"><h2 class="panel-title">{{ section["title"] }}</h2></div>
+    <div class="grid">
+      {% for item in section["items"] %}{% include "partials/content_card.html" %}{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% if cards %}
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Public listings</h2></div>
+  <div class="grid">
+    {% for card in cards %}
+    <a class="card" href="{{ card.url }}" target="_blank" rel="noopener noreferrer nofollow">
+      <div class="card-cover">
+        {% if card.image_url %}
+          <img src="{{ card.image_url }}" alt="{{ card.title }} poster" loading="lazy"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+          <div class="placeholder" style="display:none; background:linear-gradient(140deg,#6366f155,#0f172a)">{{ card.title|initials }}</div>
+        {% else %}
+          <div class="placeholder" style="background:linear-gradient(140deg,#6366f166,#0f172a)">{{ card.title|initials }}</div>
+        {% endif %}
+        <span class="card-cat">🌐 Public</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title">{{ card.title }}</div>
+        <div class="card-row">
+          {% if card.episodes %}<span>{{ card.episodes }} eps</span>{% endif %}
+          {% if card.score %}<span class="card-rating">⭐ {{ card.score }}</span>{% endif %}
+          {% if card.release_date %}<span>📅 {{ card.release_date }}</span>{% endif %}
+          {% if card.type %}<span class="pill pill-mute">{{ card.type }}</span>{% endif %}
+          {% if card.season %}<span class="pill pill-info">{{ card.season }}{% if card.year %} {{ card.year }}{% endif %}</span>{% endif %}
+        </div>
+        {% if card.genres %}
+        <div class="tag-row">{% for genre in card.genres[:3] %}<span class="tag">{{ genre }}</span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% for block in secondary %}
+  {% if block["cards"] %}
+  <div class="panel">
+    <div class="panel-head"><h2 class="panel-title">{{ block.title }}</h2></div>
+    <div class="grid">
+      {% for card in block["cards"] %}
+      <a class="card" href="{{ card.url }}" target="_blank" rel="noopener noreferrer nofollow">
+        <div class="card-cover">
+          {% if card.image_url %}
+            <img src="{{ card.image_url }}" alt="" loading="lazy"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+            <div class="placeholder" style="display:none; background:linear-gradient(140deg,#8b5cf655,#0f172a)">{{ card.title|initials }}</div>
+          {% else %}
+            <div class="placeholder" style="background:linear-gradient(140deg,#8b5cf666,#0f172a)">{{ card.title|initials }}</div>
+          {% endif %}
+          <span class="card-cat">🌐 Public</span>
+        </div>
+        <div class="card-body">
+          <div class="card-title">{{ card.title }}</div>
+          <div class="card-row">
+            {% if card.type %}<span class="pill pill-mute">{{ card.type }}</span>{% endif %}
+            {% if card.season %}<span class="pill pill-info">{{ card.season }} {{ card.year }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if block["entries"] %}
+  <div class="panel">
+    <div class="panel-head"><h2 class="panel-title">{{ block.title }}</h2></div>
+    {% for entry in block["entries"] %}
+    <a class="feed-card" href="{{ entry.link or '#' }}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none">
+      <div style="flex:1; min-width:0">
+        <div class="t">{{ entry.title }}</div>
+        <div class="s">{{ entry.source }}{% if entry.published %} · {{ entry.published }}{% endif %}</div>
+        {% if entry.summary %}<div class="s" style="margin-top:4px; color:var(--text-dim)">{{ entry.summary|truncate_text(180) }}</div>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% set has_anything = namespace(value=false) %}
+{% for section in sections %}{% if section["items"] %}{% set has_anything.value = true %}{% endif %}{% endfor %}
+{% if cards %}{% set has_anything.value = true %}{% endif %}
+{% for block in secondary %}
+  {% if block["cards"] or block["entries"] %}{% set has_anything.value = true %}{% endif %}
+{% endfor %}
+{% if not has_anything.value %}
+<div class="empty">
+  <div class="icon">🌐</div>
+  <h3>Nothing to show here yet</h3>
+  <p>Public listings are fetched on demand. Add items in this category to see your own updates, or try another filter.</p>
+  <a class="btn btn-primary" href="/add">＋ Add Content</a>
+</div>
+{% endif %}
+
+{% endblock %}

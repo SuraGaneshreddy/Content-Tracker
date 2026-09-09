@@ -1,0 +1,56 @@
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="brand">
+    <div class="brand-mark">📚</div>
+    <div class="brand-text">
+      {{ app_name }}
+      <small>Personal</small>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a class="nav-add" href="/add"><span>＋</span> Add Content</a>
+
+    <div class="nav-section">Main</div>
+    <a href="/" class="{{ 'active' if active_path == '/' }}"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a href="/library" class="{{ 'active' if active_path.startswith('/library') }}"><span class="nav-icon">📚</span> My Library</a>
+    <a href="/updates" class="{{ 'active' if active_path.startswith('/updates') and active_path == '/updates' }}">
+      <span class="nav-icon">🔄</span> Updates
+      {% if pending_updates %}<span class="badge pill pill-warn">{{ pending_updates }}</span>{% endif %}
+    </a>
+    <a href="/favorites" class="{{ 'active' if active_path.startswith('/favorites') }}"><span class="nav-icon">⭐</span> Favorites</a>
+    <a href="/notifications" class="{{ 'active' if active_path.startswith('/notifications') }}">
+      <span class="nav-icon">🔔</span> Notifications
+      {% if unread_count %}<span class="badge pill pill-bad" id="nav-unread">{{ unread_count }}</span>{% endif %}
+    </a>
+
+    <div class="nav-section">Categories</div>
+    {% for category in categories %}
+    <a href="/category/{{ category.slug }}" class="{{ 'active' if active_path == '/category/' + category.slug }}">
+      <span class="nav-icon">{{ category.icon }}</span> {{ category.name }}
+    </a>
+    {% endfor %}
+
+    <div class="nav-section">Category updates</div>
+    <a href="/updates/anime" class="{{ 'active' if active_path == '/updates/anime' }}"><span class="nav-icon">🎬</span> Anime</a>
+    <a href="/updates/manga" class="{{ 'active' if active_path == '/updates/manga' }}"><span class="nav-icon">📖</span> Manga</a>
+    <a href="/updates/manhwa" class="{{ 'active' if active_path == '/updates/manhwa' }}"><span class="nav-icon">📘</span> Manhwa</a>
+    <a href="/updates/manhua" class="{{ 'active' if active_path == '/updates/manhua' }}"><span class="nav-icon">📗</span> Manhua</a>
+    <a href="/updates/movies" class="{{ 'active' if active_path == '/updates/movies' }}"><span class="nav-icon">🎥</span> Movies</a>
+    <a href="/updates/sports" class="{{ 'active' if active_path == '/updates/sports' }}"><span class="nav-icon">⚽</span> Sports</a>
+    <a href="/updates/news" class="{{ 'active' if active_path == '/updates/news' }}"><span class="nav-icon">📰</span> News</a>
+    <a href="/updates/coding" class="{{ 'active' if active_path == '/updates/coding' }}"><span class="nav-icon">💻</span> Coding</a>
+
+    <div class="nav-section">Manage</div>
+    <a href="/tags" class="{{ 'active' if active_path.startswith('/tags') }}"><span class="nav-icon">🏷️</span> Tags</a>
+    <a href="/trash" class="{{ 'active' if active_path.startswith('/trash') }}"><span class="nav-icon">🗑️</span> Trash</a>
+    <a href="/data" class="{{ 'active' if active_path.startswith('/data') }}"><span class="nav-icon">💾</span> Backup & Export</a>
+    <a href="/settings" class="{{ 'active' if active_path.startswith('/settings') }}"><span class="nav-icon">⚙️</span> Settings</a>
+    {% if user.role == 'admin' %}
+    <a href="/admin" class="{{ 'active' if active_path.startswith('/admin') }}"><span class="nav-icon">🛠️</span> System</a>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    Signed in as {{ user.email }}
+  </div>
+</aside>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block anon_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark">📚</div>
+      <div class="brand-text">{{ app_name }}<small>Personal</small></div>
+    </div>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Your library lives in your own database — nothing is shared with anyone else.</p>
+
+    {% if error %}
+    <div class="alert alert-error"><span>⚠️</span><span>{{ error }}</span></div>
+    {% endif %}
+
+    <form class="auth-form" method="post" action="/register">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="username" required autofocus
+               value="{{ form.email or '' }}" placeholder="you@example.com">
+      </div>
+
+      <div class="field">
+        <label for="display_name">Display name <span style="color:var(--text-faint); font-weight:400">(optional)</span></label>
+        <input class="input" id="display_name" name="display_name" maxlength="120" value="{{ form.display_name or '' }}" placeholder="What should we call you?">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8"
+               placeholder="At least 8 characters">
+      </div>
+
+      <div class="field">
+        <label for="password_confirm">Confirm password</label>
+        <input class="input" id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required
+               placeholder="Repeat it">
+      </div>
+
+      <label class="checkline"><input type="checkbox" name="remember" value="true" checked> Keep me signed in</label>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Create account</button>
+    </form>
+
+    <div class="auth-foot">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+
+    <ul class="feature-list">
+      <li><span>🔐</span> Passwords hashed with Argon2id and never stored in plain text</li>
+      <li><span>🗂️</span> Nine content categories, each with the right progress fields</li>
+      <li><span>💾</span> One-click JSON/CSV export and full backups</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

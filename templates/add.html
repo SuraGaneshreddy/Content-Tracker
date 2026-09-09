@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">＋ Add Content</h1>
+    <p class="page-sub">Save a link once — we'll organise it, track your progress and tell you when something changes.</p>
+  </div>
+</div>
+
+{% if form_error %}
+<div class="alert alert-error"><span>⚠️</span><span>{{ form_error }}</span></div>
+{% endif %}
+
+<form class="panel" id="content-form" method="post" action="/add" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  {% set values = prefill or {} %}
+  {% set selected_cat = values.category or (settings.default_category if settings else '') or 'manga' %}
+  {% include "partials/form_fields.html" %}
+
+  <div class="field full">
+    <label class="checkline">
+      <input type="checkbox" name="auto_metadata" value="1" checked>
+      Fetch public metadata from the URL (title, cover, description) where available
+    </label>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:6px; flex-wrap:wrap">
+    <button class="btn btn-primary btn-lg" type="submit">💾 Save to library</button>
+    <a class="btn btn-lg" href="/library">Cancel</a>
+  </div>
+</form>
+
+<div class="panel">
+  <div class="panel-head"><h2 class="panel-title">Tips</h2></div>
+  <ul style="margin:0; padding-left:18px; color:var(--text-dim); font-size:13.5px; line-height:1.75">
+    <li>Pick the category first — the progress fields adapt (chapters for manga, season/episode for anime, % for courses).</li>
+    <li>“Find metadata” reads the page's public title and image. It never changes your URL.</li>
+    <li>Links are checked for reachability automatically; you can re-check any item at any time.</li>
+    <li>Press <kbd style="background:var(--surface-3); padding:1px 6px; border-radius:5px; font-size:12px">N</kbd> anywhere to jump back to this page.</li>
+  </ul>
+</div>
+
+{% endblock %}

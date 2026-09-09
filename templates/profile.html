@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">👤 Profile & account</h1>
+    <p class="page-sub">{{ user.email }}{% if user.role == 'admin' %} · administrator{% endif %}</p>
+  </div>
+</div>
+
+{% if message == 'saved' %}<div class="alert alert-success" data-autohide><span>✅</span><span>Profile saved.</span></div>{% endif %}
+{% if message == 'password-changed' %}<div class="alert alert-success" data-autohide><span>✅</span><span>Password changed. Other devices were signed out.</span></div>{% endif %}
+{% if message == 'sessions' %}<div class="alert alert-success" data-autohide><span>✅</span><span>Other sessions signed out.</span></div>{% endif %}
+{% if error == 'wrong-password' %}<div class="alert alert-error"><span>⚠️</span><span>Your current password was not correct.</span></div>{% endif %}
+{% if error == 'mismatch' %}<div class="alert alert-error"><span>⚠️</span><span>The two new passwords didn't match.</span></div>{% endif %}
+{% if error == 'weak' %}<div class="alert alert-error"><span>⚠️</span><span>That password is too weak. Use at least 8 characters and avoid common words.</span></div>{% endif %}
+
+<div class="two-col">
+  <div>
+    <form class="panel" method="post" action="/profile">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="panel-head"><h2 class="panel-title">Profile</h2></div>
+      <div class="field">
+        <label for="p-email">Email</label>
+        <input class="input" id="p-email" value="{{ user.email }}" disabled>
+        <span class="hint">Your email is your sign-in name.</span>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="p-name">Display name</label>
+        <input class="input" id="p-name" name="display_name" maxlength="120" value="{{ user.display_name or '' }}">
+      </div>
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Save profile</button>
+    </form>
+
+    <form class="panel" method="post" action="/profile">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="panel-head"><h2 class="panel-title">Change password</h2></div>
+      <div class="field">
+        <label for="p-current">Current password</label>
+        <input class="input" id="p-current" name="current_password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="p-new">New password</label>
+        <input class="input" id="p-new" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
+        <span class="hint">At least 8 characters. Changing it signs out every other device.</span>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="p-confirm">Confirm new password</label>
+        <input class="input" id="p-confirm" name="new_password_confirm" type="password" autocomplete="new-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Update password</button>
+    </form>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Account</h2></div>
+      <div class="stats-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0">
+        <div class="stat-card"><div class="stat-icon">📚</div><div><div class="stat-value">{{ counts.items }}</div><div class="stat-label">Items</div></div></div>
+        <div class="stat-card"><div class="stat-icon">⭐</div><div><div class="stat-value">{{ counts.favorites }}</div><div class="stat-label">Favorites</div></div></div>
+      </div>
+      <dl class="kv" style="margin-top:14px">
+        <dt>Member since</dt><dd>{{ user.created_at.strftime('%d %b %Y') }}</dd>
+        <dt>Last sign-in</dt><dd>{{ user.last_login_at|relativetime if user.last_login_at else 'This session' }}</dd>
+        <dt>Password</dt><dd>{% if user.password_changed_at %}Changed {{ user.password_changed_at|relativetime }}{% else %}Set at registration{% endif %}</dd>
+        <dt>Password hash</dt><dd>Argon2id (memory-hard)</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Active sessions ({{ counts.sessions }})</h2>
+        {% if counts.sessions > 1 %}
+        <form method="post" action="/profile/sessions/revoke" style="margin-left:auto"
+              onsubmit="return confirm('Sign out all other devices? This session stays signed in.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn btn-sm btn-danger" type="submit">Sign out others</button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="activity-list">
+        {% for session in sessions %}
+        <div class="activity-item">
+          <span class="activity-icon">💻</span>
+          <div style="min-width:0">
+            <div class="activity-text">{{ session.user_agent[:70] or 'Unknown device' }}{% if session.user_agent|length > 70 %}…{% endif %}</div>
+            <div class="activity-time">Last active {{ session.last_seen_at|relativetime }}{% if session.ip_address %} · {{ session.ip_address }}{% endif %} · expires {{ session.expires_at|relativetime }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Danger zone</h2></div>
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 12px">
+        Download a backup before making big changes. Deleting your account is not implemented here — this is a
+        personal app, and your data stays in your own database file.
+      </p>
+      <a class="btn" href="/backup">💾 Download my backup</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

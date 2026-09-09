@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">💾 Import, export & backup</h1>
+    <p class="page-sub">Your library stays yours. Export any time, restore on any install.</p>
+  </div>
+</div>
+
+{% if message %}<div class="alert alert-error"><span>⚠️</span><span>{{ message }}</span></div>{% endif %}
+{% if imported is not none %}
+<div class="alert alert-success" data-autohide><span>✅</span><span>Imported {{ imported }} item{{ '' if imported == 1 else 's' }}. Duplicates and invalid rows were skipped.</span></div>
+{% endif %}
+
+<div class="two-col">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Export</h2></div>
+      <p style="color:var(--text-dim); font-size:13.5px; margin:0 0 12px">
+        Both formats include titles, URLs, categories, status, progress, ratings, notes and tags.
+        JSON also carries your preferences and is the format used for restore.
+      </p>
+      <div style="display:flex; gap:9px; flex-wrap:wrap">
+        <a class="btn btn-primary" href="/export/json">⬇ Export as JSON</a>
+        <a class="btn" href="/export/csv">⬇ Export as CSV</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Backup</h2></div>
+      <p style="color:var(--text-dim); font-size:13.5px; margin:0 0 12px">
+        A full snapshot of your account: every item plus your settings.
+        <strong>Passwords, session tokens and API keys are never included.</strong>
+      </p>
+      <a class="btn btn-primary btn-lg" href="/backup">💾 Download my backup</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Restore a backup</h2></div>
+      <form method="post" action="/restore" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="restore-file">Backup file (.json)</label>
+          <input class="input" id="restore-file" name="file" type="file" accept=".json,application/json" required>
+          <span class="hint">Existing items with the same URL are skipped, so a restore never creates duplicates.</span>
+        </div>
+        <button class="btn btn-lg" type="submit" style="margin-top:12px"
+                onclick="return confirm('Restore this backup into your account? Existing items with the same URL are skipped.')">♻ Restore</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Import</h2></div>
+      <form method="post" action="/import" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="import-file">File (.json or .csv)</label>
+          <input class="input" id="import-file" name="file" type="file" accept=".json,.csv,application/json,text/csv" required>
+          <span class="hint">Up to {{ max_upload_mb }} MB. Every row is validated before it is inserted; bad rows are reported, not silently dropped.</span>
+        </div>
+        <label class="checkline" style="margin-top:10px">
+          <input type="checkbox" name="apply_settings" value="on" checked> Also apply saved preferences (theme, layout)
+        </label>
+        <button class="btn btn-primary btn-lg" type="submit" style="margin-top:12px">📥 Import</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">What's in a backup</h2></div>
+      <ul style="margin:0; padding-left:18px; color:var(--text-dim); font-size:13px; line-height:1.8">
+        <li>✅ Titles, URLs, categories, status</li>
+        <li>✅ Progress (chapter / episode / season / volume / % / custom)</li>
+        <li>✅ Ratings, notes, descriptions, tags</li>
+        <li>✅ Cover image URLs, favourites, external IDs</li>
+        <li>✅ Your preferences (theme, layout, check intervals)</li>
+        <li>❌ Password hash, reset tokens, session tokens</li>
+        <li>❌ API keys or any server secret</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">CSV column order</h2></div>
+      <p style="font-size:12px; color:var(--text-faint); font-family:ui-monospace, monospace; margin:0; word-break:break-all">
+        title, url, category, status, chapter, episode, season, volume, progress_text,
+        progress_percent, rating, tags, notes, description, cover_image_url, is_favorite, created_at
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">🛠️ System</h1>
+    <p class="page-sub">Diagnostics and maintenance. Only visible to administrators.</p>
+  </div>
+  <div class="page-actions">
+    <form method="post" action="/admin/run-checks"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn" type="submit">▶ Run checks now</button></form>
+    <form method="post" action="/admin/clear-cache"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn" type="submit">🧹 Clear cache</button></form>
+    <form method="post" action="/admin/prune-logs"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-danger" type="submit">✂ Prune logs</button></form>
+  </div>
+</div>
+
+{% if message %}<div class="alert alert-success" data-autohide><span>✅</span><span>{{ message.replace('-', ' ')|capitalize }}.</span></div>{% endif %}
+{% if request.query_params.get('err') %}<div class="alert alert-error"><span>⚠️</span><span>{{ request.query_params.get('err').replace('-', ' ')|capitalize }}.</span></div>{% endif %}
+
+<div class="two-col">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Background scheduler</h2></div>
+      <dl class="kv">
+        <dt>Enabled</dt><dd>{{ '✅ Yes' if scheduler.enabled else '⚪ No (ENABLE_SCHEDULER=false)' }}</dd>
+        <dt>Running</dt><dd>{{ '✅ Yes' if scheduler.running else '⚪ No' }}</dd>
+        <dt>Runs completed</dt><dd>{{ scheduler.runs }}</dd>
+        <dt>Interval</dt><dd>every {{ scheduler.interval_minutes }} minutes</dd>
+        <dt>Last run</dt><dd>{% if scheduler.last_run_seconds_ago is not none %}{{ scheduler.last_run_seconds_ago }}s ago{% else %}Not yet{% endif %}</dd>
+        <dt>Last result</dt><dd style="font-family:ui-monospace,monospace; font-size:12px">{{ scheduler.last_summary or '—' }}</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">URL check log</h2></div>
+      {% if logs %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Host</th><th>Status</th><th>Code</th><th>Latency</th><th>When</th></tr></thead>
+          <tbody>
+          {% for log in logs %}
+            <tr>
+              <td style="font-family:ui-monospace,monospace; font-size:12px">{{ log.host or log.url[:40] }}</td>
+              <td>{{ url_status_icons[log.status] }} {{ log.status }}</td>
+              <td>{{ log.status_code or '—' }}</td>
+              <td>{% if log.latency_ms is not none %}{{ log.latency_ms }} ms{% else %}—{% endif %}</td>
+              <td style="color:var(--text-faint)">{{ log.checked_at|relativetime }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<p style="color:var(--text-faint); font-size:13px; margin:0">No checks recorded yet.</p>{% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Configuration</h2></div>
+      <dl class="kv">
+        <dt>Environment</dt><dd>{{ '🟢 production' if app_env == 'production' else '🟡 ' ~ app_env }}</dd>
+        <dt>Database</dt><dd style="font-family:ui-monospace,monospace; font-size:12px; word-break:break-all">{{ db_url }}</dd>
+        <dt>Anime API</dt><dd>{{ '✅ Jikan' if integrations.jikan else '⚪ off' }}</dd>
+        <dt>Movie API</dt><dd>{{ '✅ TMDB' if integrations.tmdb else '⚪ no key' }}</dd>
+        <dt>RSS</dt><dd>{{ '✅ on' if integrations.rss else '⚪ off' }}</dd>
+        <dt>Cover cache</dt><dd>{{ cache.count }} files · {{ cache.mb }} MB</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Users ({{ users|length }})</h2></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Email</th><th>Role</th><th>Items</th><th>Last login</th><th></th></tr></thead>
+          <tbody>
+          {% for row in users %}
+            <tr>
+              <td>{{ row.email }}</td>
+              <td><span class="pill {{ 'pill-info' if row.role == 'admin' else 'pill-mute' }}">{{ row.role }}</span></td>
+              <td>{{ row.item_count }}</td>
+              <td style="color:var(--text-faint)">{{ row.last_login_at|relativetime if row.last_login_at else 'never' }}</td>
+              <td>
+                {% if row.id != user.id %}
+                <form method="post" action="/admin/users/{{ row.id }}/toggle">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button class="btn btn-sm {{ 'btn-danger' if row.is_active else '' }}" type="submit">
+                    {{ 'Disable' if row.is_active else 'Enable' }}
+                  </button>
+                </form>
+                {% else %}<span style="color:var(--text-faint); font-size:12px">you</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Table sizes</h2></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Table</th><th style="text-align:right">Rows</th></tr></thead>
+          <tbody>
+          {% for row in tables %}
+            <tr><td>{{ row.name }}</td><td style="text-align:right">{{ row.rows }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

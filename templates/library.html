@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% set params = request.query_params %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">
+      {{ total }} item{{ '' if total == 1 else 's' }}
+      {% if query.search %} matching “{{ query.search }}”{% endif %}
+      {% if query.tag %} tagged <span class="tag">#{{ query.tag }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    <button class="btn" type="button" id="view-toggle">{{ '▦ Grid' if (settings and settings.default_view == 'list') else '☰ List' }}</button>
+    <a class="btn btn-primary" href="/add">＋ Add Content</a>
+  </div>
+</div>
+
+<form class="toolbar" method="get" action="">
+  {% if query.category %}<input type="hidden" name="category" value="{{ query.category }}">{% endif %}
+  {% if query.favorites_only %}<input type="hidden" name="favorites" value="1">{% endif %}
+
+  <div class="chips">
+    {% for key, label in status_labels.items() %}
+    <a class="chip {{ 'active' if query.status_filter == key }}"
+       href="{{ '/favorites' if query.favorites_only else ('/category/' + query.category if query.category else '/library') }}?status={{ key }}{% if query.search %}&q={{ query.search }}{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="spacer"></div>
+
+  <input class="input" style="max-width:180px" type="search" name="q" value="{{ query.search or '' }}" placeholder="Filter by title, note, tag…">
+
+  <select class="input" name="sort" data-auto-submit aria-label="Sort">
+    {% for key, label in sort_options.items() %}
+    <option value="{{ key }}" {{ 'selected' if query.sort == key }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <select class="input" name="rating" data-auto-submit aria-label="Minimum rating">
+    <option value="">Any rating</option>
+    {% for value in [9, 8, 7, 6, 5, 4, 3, 2, 1] %}
+    <option value="{{ value }}" {{ 'selected' if query.rating == value }}>{{ value }}★ and up</option>
+    {% endfor %}
+  </select>
+
+  <select class="input" name="per_page" data-auto-submit aria-label="Items per page">
+    {% for value in [12, 24, 48, 96] %}
+    <option value="{{ value }}" {{ 'selected' if query.per_page == value }}>{{ value }} per page</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if all_tags %}
+<div class="toolbar" style="padding:9px 10px">
+  <span style="font-size:12px; color:var(--text-faint); font-weight:600">TAGS</span>
+  <div class="chips">
+    {% for tag, count in all_tags[:18] %}
+    <a class="chip {{ 'active' if query.tag and query.tag|lower == tag.name|lower }}"
+       href="?tag={{ tag.name|urlencode }}{% if query.status_filter != 'all' %}&status={{ query.status_filter }}{% endif %}">#{{ tag.name }} <span style="opacity:.6">{{ count }}</span></a>
+    {% endfor %}
+  </div>
+  {% if query.tag %}<a class="btn btn-sm btn-ghost" href="?">Clear tag</a>{% endif %}
+</div>
+{% endif %}
+
+{% if items %}
+<div class="grid {{ 'list-view' if settings and settings.default_view == 'list' }}" id="content-grid">
+  {% for item in items %}{% include "partials/content_card.html" %}{% endfor %}
+</div>
+
+{% if pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% set base_qs = request.url.query %}
+  <a class="{{ 'disabled' if query.page <= 1 }}" href="?{{ base_qs }}&page={{ query.page - 1 }}">← Prev</a>
+  {% set window = 2 %}
+  {% for page in range(1, pages + 1) %}
+    {% if page == 1 or page == pages or (page >= query.page - window and page <= query.page + window) %}
+      <a class="{{ 'current' if page == query.page }}" href="?{{ base_qs }}&page={{ page }}">{{ page }}</a>
+    {% elif page == query.page - window - 1 or page == query.page + window + 1 %}
+      <span>…</span>
+    {% endif %}
+  {% endfor %}
+  <a class="{{ 'disabled' if query.page >= pages }}" href="?{{ base_qs }}&page={{ query.page + 1 }}">Next →</a>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty">
+  <div class="icon">{{ '⭐' if query.favorites_only else '🔍' }}</div>
+  <h3>{% if query.search or query.tag or query.status_filter != 'all' %}Nothing matches those filters{% elif query.favorites_only %}No favorites yet{% else %}This section is empty{% endif %}</h3>
+  <p>{% if query.search or query.tag or query.status_filter != 'all' %}Try clearing the filters, or add something new.{% else %}Add a link and it will show up here.{% endif %}</p>
+  <div style="display:flex; gap:9px; justify-content:center; flex-wrap:wrap">
+    {% if query.search or query.tag or query.status_filter != 'all' %}<a class="btn" href="{{ request.url.path }}">Clear filters</a>{% endif %}
+    <a class="btn btn-primary" href="/add">＋ Add Content</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

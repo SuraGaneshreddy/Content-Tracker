@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">🔔 Notifications</h1>
+    <p class="page-sub">{{ unread_count }} unread · new chapters, releases, and link problems.</p>
+  </div>
+  <div class="page-actions">
+    <a class="chip {{ 'active' if not unread_only }}" href="/notifications">All</a>
+    <a class="chip {{ 'active' if unread_only }}" href="/notifications?unread_only=1">Unread</a>
+    {% if items %}<button class="btn" type="button" id="mark-all-read">Mark all read</button>{% endif %}
+  </div>
+</div>
+
+{% if items %}
+<div class="panel">
+  {% for note in items %}
+  <div class="activity-item notification-row {{ 'read' if note.is_read }}" style="align-items:flex-start; {{ 'opacity:.6' if note.is_read }}">
+    <span class="activity-icon">{{ note.icon }}</span>
+    <div style="min-width:0; flex:1">
+      <div style="font-weight:650; font-size:13.5px">{{ note.title }}</div>
+      {% if note.message %}<div class="activity-text">{{ note.message }}</div>{% endif %}
+      <div class="activity-time">{{ note.created_at|relativetime }}{% if note.kind %} · {{ note.kind.replace('_',' ') }}{% endif %}</div>
+    </div>
+    <div style="display:flex; gap:6px; flex-shrink:0">
+      {% if note.content_id %}<a class="btn btn-sm" href="/content/{{ note.content_id }}">Open</a>{% endif %}
+      {% if not note.is_read %}<button class="btn btn-sm btn-ghost" type="button" data-notification-read="{{ note.id }}">Mark read</button>{% endif %}
+      <button class="btn btn-sm btn-ghost" type="button" data-notification-delete="{{ note.id }}" aria-label="Delete">✕</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="icon">🔔</div>
+  <h3>{% if unread_only %}No unread notifications{% else %}Nothing here yet{% endif %}</h3>
+  <p>You'll be told when a saved item gets a new chapter, episode or release, and when a link stops working.</p>
+  <a class="btn btn-primary" href="/updates">See updates</a>
+</div>
+{% endif %}
+
+{% endblock %}

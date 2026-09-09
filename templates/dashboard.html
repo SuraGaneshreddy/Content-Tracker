@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Welcome back{% if user.display_name %}, {{ user.display_name }}{% endif %} 👋</h1>
+    <p class="page-sub">
+      {% if stats.total %}
+        You're tracking {{ stats.total }} item{{ '' if stats.total == 1 else 's' }}
+        {% if stats.pending_updates %}· <strong style="color:var(--warning)">{{ stats.pending_updates }} new update{{ '' if stats.pending_updates == 1 else 's' }}</strong>{% endif %}
+        {% if stats.broken_urls %}· <span style="color:var(--danger)">{{ stats.broken_urls }} link{{ '' if stats.broken_urls == 1 else 's' }} need attention</span>{% endif %}
+      {% else %}
+        Your library is empty — add the first thing you're following.
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="/library">📚 Library</a>
+    <a class="btn btn-primary" href="/add">＋ Add Content</a>
+  </div>
+</div>
+
+{% if empty %}
+<div class="empty">
+  <div class="icon">📚</div>
+  <h3>Nothing here yet</h3>
+  <p>Save a manga, anime, movie, sport or tutorial link and it will appear here with progress tracking,<br>
+     update checks and link health monitoring.</p>
+  <a class="btn btn-primary btn-lg" href="/add">＋ Add your first item</a>
+</div>
+{% else %}
+
+<div class="stats-grid">
+  <a class="stat-card" href="/library"><div class="stat-icon">📚</div><div><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total library</div></div></a>
+  <a class="stat-card" href="/library?status=reading"><div class="stat-icon" style="background:color-mix(in srgb, #22c55e 16%, transparent)">📖</div><div><div class="stat-value">{{ stats.reading }}</div><div class="stat-label">Reading</div></div></a>
+  <a class="stat-card" href="/library?status=watching"><div class="stat-icon" style="background:color-mix(in srgb, #10b981 16%, transparent)">🎬</div><div><div class="stat-value">{{ stats.watching }}</div><div class="stat-label">Watching</div></div></a>
+  <a class="stat-card" href="/library?status=completed"><div class="stat-icon" style="background:color-mix(in srgb, #8b5cf6 16%, transparent)">✅</div><div><div class="stat-value">{{ stats.completed }}</div><div class="stat-label">Completed</div></div></a>
+  <a class="stat-card" href="/library?status=planning"><div class="stat-icon" style="background:color-mix(in srgb, #f59e0b 16%, transparent)">📌</div><div><div class="stat-value">{{ stats.planning }}</div><div class="stat-label">Planning</div></div></a>
+  <a class="stat-card" href="/library?status=on_hold"><div class="stat-icon" style="background:color-mix(in srgb, #64748b 16%, transparent)">⏸</div><div><div class="stat-value">{{ stats.on_hold }}</div><div class="stat-label">On hold</div></div></a>
+  <a class="stat-card" href="/favorites"><div class="stat-icon" style="background:color-mix(in srgb, #fbbf24 16%, transparent)">⭐</div><div><div class="stat-value">{{ stats.favorites }}</div><div class="stat-label">Favorites</div></div></a>
+</div>
+
+{% if pending %}
+<div class="panel" style="border-color: color-mix(in srgb, var(--warning) 34%, var(--border))">
+  <div class="panel-head">
+    <h2 class="panel-title">🔔 New updates available</h2>
+    <a class="btn btn-sm" href="/updates">View all</a>
+  </div>
+  {% for item in pending %}
+  <div class="feed-card" style="align-items:center">
+    {% if item.cover_src %}<img src="{{ item.cover_src }}" alt="" loading="lazy">{% endif %}
+    <div style="flex:1; min-width:0">
+      <div class="t">{{ item.title }}</div>
+      <div class="s">{{ item.latest_available or 'New content available' }}{% if item|progress_label %} · you're on {{ item|progress_label }}{% endif %}</div>
+    </div>
+    <a class="btn btn-sm" href="{{ item.url }}" target="_blank" rel="noopener noreferrer nofollow" data-open-track="{{ item.id }}">Open</a>
+    <button class="btn btn-sm btn-ghost" type="button" data-update-state="read" data-content-id="{{ item.id }}">Mark read</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if broken %}
+<div class="panel" style="border-color: color-mix(in srgb, var(--danger) 32%, var(--border))">
+  <div class="panel-head">
+    <h2 class="panel-title">⚠ Links that may no longer be working</h2>
+  </div>
+  {% for item in broken %}
+  <div class="feed-card" style="align-items:center">
+    <div style="flex:1; min-width:0">
+      <div class="t">{{ item.title }}</div>
+      <div class="s">
+        {{ url_status_icons[item.url_status] }} {{ url_status_labels[item.url_status] }}
+        {% if item.url_status_code %}(HTTP {{ item.url_status_code }}){% endif %}
+        · checked {{ item.url_last_checked_at|relativetime }}
+      </div>
+    </div>
+    <a class="btn btn-sm" href="/content/{{ item.id }}/alternatives">Find alternative</a>
+    <button class="btn btn-sm btn-ghost" type="button" data-check-url="{{ item.id }}">Re-check</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="two-col">
+  <div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Recently added</h2>
+        <a class="btn btn-sm btn-ghost" href="/library">See all →</a>
+      </div>
+      <div class="grid" id="content-grid">
+        {% for item in recent %}{% include "partials/content_card.html" %}{% endfor %}
+      </div>
+    </div>
+
+    {% if recently_updated %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Recently updated by you</h2>
+        <a class="btn btn-sm btn-ghost" href="/library?sort=recent_updated">See all →</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Title</th><th>Category</th><th>Progress</th><th>Status</th><th>Updated</th></tr></thead>
+          <tbody>
+          {% for item in recently_updated %}
+            <tr>
+              <td><a href="/content/{{ item.id }}" style="font-weight:600">{{ item.title }}</a></td>
+              <td>{{ item.category.icon }} {{ item.category.name }}</td>
+              <td>{{ item|progress_label or '—' }}</td>
+              <td><span class="pill" style="background: color-mix(in srgb, {{ item.category.accent }} 16%, transparent); color: {{ item.category.accent }}">{{ item.status|statuslabel }}</span></td>
+              <td style="color:var(--text-faint)">{{ item.updated_at|relativetime }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Category breakdown</h2></div>
+      {% if stats.by_category %}
+      <div class="breakdown">
+        {% set max_count = stats.by_category|map(attribute='count')|max %}
+        {% for row in stats.by_category %}
+        <a class="breakdown-row" href="/category/{{ row.slug }}">
+          <span style="width:88px; display:flex; gap:6px; align-items:center">
+            <span>{{ row.icon }}</span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ row.name }}</span>
+          </span>
+          <span class="breakdown-bar"><span class="breakdown-fill" style="width: {{ (row.count / max_count * 100)|round|int }}%; background: {{ row.accent }}"></span></span>
+          <span class="breakdown-count">{{ row.count }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}<p style="color:var(--text-faint); font-size:13px; margin:0">No items yet.</p>{% endif %}
+
+      {% if stats.average_rating %}
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border-soft); font-size:13px; color:var(--text-dim)">
+        ⭐ Average rating <strong style="color:var(--star)">{{ stats.average_rating }}/10</strong>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Recent activity</h2></div>
+      {% if activity %}
+      <div class="activity-list">
+        {% for row in activity %}
+        <div class="activity-item">
+          <span class="activity-icon">{{ row.icon }}</span>
+          <div style="min-width:0">
+            <div class="activity-text">{{ row.message }}</div>
+            <div class="activity-time">{{ row.created_at|relativetime }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<p style="color:var(--text-faint); font-size:13px; margin:0">Nothing yet — add something to get started.</p>{% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Quick actions</h2></div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <button class="btn btn-block" type="button" id="run-checks">🔄 Check for updates now</button>
+        <a class="btn btn-block" href="/data">💾 Download a backup</a>
+        <a class="btn btn-block" href="/trash">🗑️ Trash ({{ stats.trash }})</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

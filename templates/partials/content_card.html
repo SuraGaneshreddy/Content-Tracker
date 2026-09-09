@@ -1,0 +1,68 @@
+{# Content card. Expects `item`. Renders identically in grid and list view. #}
+{% set accent = item.category.accent if item.category else '#6366f1' %}
+<article class="card" data-card="{{ item.id }}">
+  <a class="card-cover" href="/content/{{ item.id }}" aria-label="Open {{ item.title }}">
+    {% if item.cover_src %}
+      <img src="{{ item.cover_src }}" alt="{{ item.title }} cover" loading="lazy" decoding="async"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+      <div class="placeholder" style="display:none; background: linear-gradient(140deg, {{ accent }}55, #0f172a)">{{ item.title|initials }}</div>
+    {% else %}
+      <div class="placeholder" style="background: linear-gradient(140deg, {{ accent }}66, #0f172a)">{{ item.title|initials }}</div>
+    {% endif %}
+
+    <div class="card-badges">
+      {% if item.update_available and item.update_state == 'unread' %}
+        <span class="update-flag">🔔 NEW</span>
+      {% endif %}
+    </div>
+
+    <button class="fav-btn {{ 'on' if item.is_favorite }}" data-favorite="{{ item.id }}"
+            aria-pressed="{{ 'true' if item.is_favorite else 'false' }}"
+            aria-label="{{ 'Remove from' if item.is_favorite else 'Add to' }} favorites" type="button">
+      {{ '★' if item.is_favorite else '☆' }}
+    </button>
+
+    {% if item.category %}
+    <span class="card-cat">{{ item.category.icon }} {{ item.category.name }}</span>
+    {% endif %}
+  </a>
+
+  <div class="card-body">
+    <a class="card-title" href="/content/{{ item.id }}">{{ item.title }}</a>
+
+    <div class="card-row">
+      <span class="pill" style="background: color-mix(in srgb, {{ accent }} 18%, transparent); color: {{ accent }};">
+        {{ item.status|statuslabel }}
+      </span>
+      {% if item.url_status == 'broken' %}<span class="pill pill-bad">🔴 Link</span>
+      {% elif item.url_status == 'degraded' %}<span class="pill pill-warn">🟡 Link</span>{% endif %}
+    </div>
+
+    {% set progress = item|progress_label %}
+    {% if progress %}
+    <div class="card-row"><span class="k">📈</span> {{ progress }}</div>
+    {% endif %}
+
+    {% if item.rating %}
+    <div class="card-row"><span class="card-rating">⭐ {{ item.rating }}/10</span></div>
+    {% endif %}
+
+    {% if item.tags %}
+    <div class="tag-row">
+      {% for tag in item.tags[:3] %}<span class="tag">#{{ tag.name }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card-meta">
+      <span>Updated {{ item.updated_at|relativetime }}</span>
+      {% if item.open_count %}<span>{{ item.open_count }}×</span>{% endif %}
+    </div>
+
+    <div class="card-actions">
+      <a class="btn btn-sm" href="{{ item.url }}" target="_blank" rel="noopener noreferrer nofollow"
+         data-open-track="{{ item.id }}" title="Open the saved link">Open</a>
+      <a class="btn btn-sm" href="/content/{{ item.id }}/edit" title="Edit">Edit</a>
+      <button class="btn btn-sm btn-danger" type="button" data-delete="{{ item.id }}" data-title="{{ item.title }}" title="Delete">🗑</button>
+    </div>
+  </div>
+</article>

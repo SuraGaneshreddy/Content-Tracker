@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+#  Personal Content Tracker — pinned dependencies.
+#  These are the exact versions the test suite (217 tests) runs against.
+# ---------------------------------------------------------------------------
+
+# Core web framework
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+jinja2==3.1.6
+python-multipart==0.0.32        # required for FastAPI Form()/File() handling
+
+# Data layer
+SQLAlchemy==2.0.52
+pydantic==2.13.4
+pydantic[email]==2.13.4         # pulls email-validator for EmailStr
+
+# Security / password hashing
+argon2-cffi==25.1.0
+
+# Outbound HTTP (metadata, URL health, update checks)
+httpx==0.28.1
+
+# Images (thumbnail generation / caching). Optional at runtime: without it the
+# app falls back to the source cover URL and a generated placeholder.
+Pillow==12.3.0
+
+# Tests
+pytest==9.0.3
