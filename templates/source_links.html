@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head"><h1 class="page-title">{{ item.title }} — source links</h1><a class="btn" href="/content/{{ item.id }}">← Details</a></div>
+<div class="alert alert-warn">These links were extracted from your saved page, not verified by a publisher. Check the destination belongs to this series. “Open & mark” records progress immediately, not completion. Whole-number chapters/episodes only; season resets and opaque episode IDs need manual progress.</div>
+{% if error %}<p role="status">{{ error }}</p>{% endif %}
+<p>Up to 100 matching links from one page. This is not the total number of released chapters or episodes. Your original saved URL will not change.</p>
+{% for link in links %}
+<div class="panel" style="padding:14px;margin-bottom:12px;overflow-wrap:anywhere">
+<p>{{ link.field|title }} {{ link.number }} · {{ link.url }}</p>
+<form method="post" action="/content/{{ item.id }}/open-numbered" target="_blank" rel="noopener noreferrer">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="token" value="{{ link.token }}">
+<button class="btn btn-primary" type="submit">Open & mark {{ link.field }} {{ link.number }}</button>
+<a class="btn" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">Open without changing progress</a>
+</form></div>
+{% endfor %}
+{% endblock %}

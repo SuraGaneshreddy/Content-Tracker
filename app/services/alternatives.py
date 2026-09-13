@@ -46,13 +46,13 @@ class Suggestion:
 # Curated, legitimate destinations per category.
 FALLBACK_SOURCES = {
     CATEGORY_ANIME: [
-        ("MyAnimeList", "https://myanimelist.net/anime.php?q={query}", "Official anime database"),
-        ("AniList", "https://anilist.co/search/anime/{query}", "Official anime database"),
+        ("MyAnimeList", "https://myanimelist.net/anime.php?q={query}", "Anime catalog (not a publisher)"),
+        ("AniList", "https://anilist.co/search/anime/{query}", "Anime catalog (not a publisher)"),
         ("Crunchyroll", "https://www.crunchyroll.com/search?q={query}", "Licensed streaming service"),
     ],
     CATEGORY_MOVIE: [
         ("TMDB", "https://www.themoviedb.org/search?query={query}", "Open movie database"),
-        ("IMDb", "https://www.imdb.com/find/?q={query}", "Official movie database"),
+        ("IMDb", "https://www.imdb.com/find/?q={query}", "Movie catalog"),
         ("Letterboxd", "https://letterboxd.com/search/{query}/", "Film catalogue"),
     ],
     CATEGORY_SPORTS: [
@@ -69,6 +69,13 @@ FALLBACK_SOURCES = {
         ("Stack Overflow", "https://stackoverflow.com/search?q={query}", "Developer Q&A"),
     ],
 }
+
+for _kind in ("manga", "manhwa", "manhua"):
+    FALLBACK_SOURCES[_kind] = [
+        ("MyAnimeList", "https://myanimelist.net/manga.php?q={query}", "Catalog search; not a verified replacement"),
+        ("AniList", "https://anilist.co/search/manga/{query}", "Catalog search; not a verified replacement"),
+        ("MangaUpdates", "https://www.mangaupdates.com/series.html?search={query}", "Database search; not a publisher release confirmation"),
+    ]
 
 GENERIC_SOURCES = [
     ("Wikipedia", "https://en.wikipedia.org/w/index.php?search={query}", "Encyclopaedia entry"),
@@ -96,7 +103,7 @@ def find_alternatives(db: Session, item: Content, limit: int = 8) -> List[Sugges
                         title=entry.get("title") or item.title,
                         url=entry["url"],
                         source="MyAnimeList",
-                        reason="Matched in the official anime database",
+                        reason="Catalog search match; confirm this is the same title",
                         image_url=entry.get("image_url"),
                         note=f"{entry.get('episodes') or '?'} episodes"
                         + (f" · score {entry['score']}" if entry.get("score") else ""),

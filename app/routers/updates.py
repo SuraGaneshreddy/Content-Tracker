@@ -25,6 +25,7 @@ from ..database import get_db
 from ..deps import csrf_required, current_user, page_context, templates
 from ..models import User
 from ..services import content_service, updates
+from ..services.catalog import page_catalog
 from ..services.metadata import jikan_season_current, jikan_season_upcoming, tmdb_upcoming
 from ..services.rss import CODING_FEEDS, NEWS_FEEDS, SPORTS_FEEDS, coding_feed, topic_feed
 
@@ -102,8 +103,9 @@ def mark_updates(
 # ---------------------------------------------------------------------------
 @router.get("/updates/anime", response_class=HTMLResponse)
 def anime_updates(request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    airing = jikan_season_current() if settings.jikan_enabled else []
-    upcoming = jikan_season_upcoming() if settings.jikan_enabled else []
+    catalog = page_catalog(request, "anime")
+    airing = catalog["cards"]
+    upcoming = []
     mine = _my_category_items(db, user.id, "anime")
     return templates.TemplateResponse(
         request,
@@ -113,6 +115,7 @@ def anime_updates(request: Request, user: User = Depends(current_user), db: Sess
             user,
             db,
             title="Anime updates",
+            catalog=catalog,
             kind="anime",
             sections=[
                 {"title": "Your anime with new episodes", "items": [i for i in mine if i.update_available]},
@@ -131,6 +134,7 @@ def anime_updates(request: Request, user: User = Depends(current_user), db: Sess
 # Manga / manhwa / manhua updates
 # ---------------------------------------------------------------------------
 def _series_updates_page(request: Request, user: User, db: Session, slug: str, title: str, icon: str):
+    catalog = page_catalog(request, slug)
     mine = _my_category_items(db, user.id, slug)
     with_updates = [i for i in mine if i.update_available]
     recently = sorted(mine, key=lambda i: i.updated_at or i.created_at, reverse=True)[:12]
@@ -142,12 +146,13 @@ def _series_updates_page(request: Request, user: User, db: Session, slug: str, t
             user,
             db,
             title=title,
+            catalog=catalog,
             kind=slug,
             sections=[
                 {"title": "New chapters detected", "items": with_updates},
                 {"title": f"Your {title.lower()} — recently updated", "items": recently},
             ],
-            cards=[],
+            cards=catalog["cards"],
             secondary=[],
             source_note=(
                 "Chapter availability is read from the page you saved, so it only reports "
@@ -190,7 +195,9 @@ def movie_updates(
     cards: List[dict] = []
     available = settings.has_tmdb
     if available:
-        cards = tmdb_upcoming(None if country in ("all", "other") else country)
+        cards = []
+    catalog = page_catalog(request, "movie")
+    cards = catalog["cards"]
 
     mine = _my_category_items(db, user.id, "movie")
     return templates.TemplateResponse(
@@ -201,6 +208,7 @@ def movie_updates(
             user,
             db,
             title="Movie / cinema updates",
+            catalog=catalog,
             kind="movie",
             sections=[{"title": "Your movies", "items": mine}],
             cards=cards,

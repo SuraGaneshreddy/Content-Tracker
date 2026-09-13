@@ -461,6 +461,7 @@
         lookupBtn.textContent = "Looking up…";
         api("/api/lookup", { body: { url: url, title: title, category: selectedCategory() } })
           .then(function (data) {
+            if (($('input[name="url"]', form).value || "") !== url) return;
             if (data.meta && data.meta.title && !$('input[name="title"]', form).value) {
               $('input[name="title"]', form).value = data.meta.title;
             }
@@ -472,20 +473,27 @@
             if (data.meta && data.meta.description && !$('textarea[name="description"]', form).value) {
               $('textarea[name="description"]', form).value = data.meta.description;
             }
-            if (data.meta && data.meta.chapter && !$('input[name="chapter"]', form).value) {
-              $('input[name="chapter"]', form).value = Math.floor(data.meta.chapter);
-            }
+            // Never copy available chapter numbers into the user's read progress.
             renderMatches(data.matches || []);
             if (lookupBox) lookupBox.style.display = "block";
             var status = $("#lookup-status");
             if (status) {
               status.textContent = data.meta && data.meta.title
                 ? "Found metadata from " + (data.meta.site || data.meta.host || "the page") + "."
-                : (data.error || "No metadata found — you can fill the fields in manually.");
+                : (data.error || "No page metadata found — choose a catalog match below or fill fields manually.");
+              if (data.meta && data.meta.chapter != null) status.textContent += " Highest chapter found on page: " + data.meta.chapter + " (not your progress or a total count).";
+              if (data.meta && data.meta.episode != null) status.textContent += " Highest episode found on page: " + data.meta.episode + " (not your progress).";
             }
           })
           .catch(function (err) { toast(err.message, "error"); })
           .finally(function () { lookupBtn.disabled = false; lookupBtn.textContent = "✨ Find metadata"; });
+      });
+    }
+
+    var urlForLookup = $('input[name="url"]', form);
+    if (urlForLookup && lookupBtn) {
+      urlForLookup.addEventListener("change", function () {
+        if (/^https?:\/\//i.test(urlForLookup.value.trim()) && !lookupBtn.disabled) lookupBtn.click();
       });
     }
 
@@ -521,7 +529,7 @@
             if (preview) { preview.src = match.image_url; preview.style.display = "block"; }
           }
           if (match.description) $('textarea[name="description"]', form).value = match.description;
-          $('input[name="external_id"]', form).value = match.id || "";
+          if (selectedCategory() === "anime" || selectedCategory() === "movie") $('input[name="external_id"]', form).value = match.id || "";
           toast("Applied “" + match.title + "”");
         });
         list.appendChild(btn);

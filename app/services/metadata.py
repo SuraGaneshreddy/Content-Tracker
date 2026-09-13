@@ -196,7 +196,7 @@ def scrape_page(url: str, *, force: bool = False) -> Metadata:
         600,
     )
     meta.image_url = clean_url(
-        tags.get("og:image") or tags.get("og:image:secure_url") or tags.get("twitter:image"),
+        tags.get("og:image") or tags.get("og:image:secure_url") or tags.get("twitter:image") or tags.get("twitter:image:src") or tags.get("image"),
         base=result.final_url or url,
     )
     meta.site_name = clean_text(tags.get("og:site_name"), 80)

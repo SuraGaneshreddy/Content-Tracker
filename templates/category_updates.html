@@ -12,6 +12,30 @@
   </div>
 </div>
 
+{% if catalog %}
+<div class="panel" style="padding:18px;margin-bottom:18px">
+<h2 class="panel-title">Discover titles</h2>
+<p class="page-sub">{{ catalog.source }} · Catalog metadata, not publisher-confirmed updates. Coverage and translated-title search depend on the provider.</p>
+<form method="get" class="toolbar" style="flex-wrap:wrap">
+<label>Title (English or original language)<input name="q" maxlength="200" value="{{ catalog.q }}" placeholder="Search titles…"></label>
+<label>Release year<input name="year" type="number" min="1900" max="2100" value="{{ catalog.year }}" placeholder="Any year"></label>
+<label>Status<select name="status">
+{% for value,label in [('all','All / old and new'),('upcoming','Upcoming'),('current','Airing / publishing'),('finished','Completed / released')] %}
+{% if kind != 'movie' or value != 'current' %}<option value="{{ value }}" {{ 'selected' if catalog.status == value }}>{{ label }}</option>{% endif %}
+{% endfor %}</select></label>
+{% if kind == 'movie' %}<input type="hidden" name="country" value="{{ catalog.country }}">{% endif %}
+<button class="btn btn-primary" type="submit">Search catalog</button>
+</form>
+{% if kind == 'movie' %}<p class="page-sub">Movie title search uses title and year; country and release-status filters apply when browsing without a title. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>{% endif %}
+{% if catalog.error %}<div class="alert alert-warn" role="status">{{ catalog.error }}</div>{% elif not catalog.cards %}<p>No matching catalog titles. Try an alternate spelling or remove a filter.</p>{% endif %}
+<div class="page-actions">
+{% if catalog.page > 1 %}<a class="btn" href="{{ catalog.previous_url }}">← Previous</a>{% endif %}
+<span>Page {{ catalog.page }}</span>
+{% if catalog.has_next %}<a class="btn" href="{{ catalog.next_url }}">Next →</a>{% endif %}
+</div>
+</div>
+{% endif %}
+
 {% if filters %}
 <div class="toolbar">
   <span style="font-size:12px; color:var(--text-faint); font-weight:600">{{ filters.name|upper }}</span>
@@ -66,7 +90,9 @@
       <div class="card-body">
         <div class="card-title">{{ card.title }}</div>
         <div class="card-row">
-          {% if card.episodes %}<span>{{ card.episodes }} eps</span>{% endif %}
+          {% if card.episodes %}<span>Catalog total: {{ card.episodes }} episodes (not a released count)</span>{% endif %}
+          {% if card.chapters %}<span>Catalog total: {{ card.chapters }} chapters</span>{% endif %}
+          {% if card.status %}<span>{{ card.status }}</span>{% endif %}
           {% if card.score %}<span class="card-rating">⭐ {{ card.score }}</span>{% endif %}
           {% if card.release_date %}<span>📅 {{ card.release_date }}</span>{% endif %}
           {% if card.type %}<span class="pill pill-mute">{{ card.type }}</span>{% endif %}

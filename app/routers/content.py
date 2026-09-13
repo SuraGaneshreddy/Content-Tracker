@@ -102,7 +102,9 @@ def lookup_metadata(
             "site": meta.site_name,
             "host": display_host(normalised),
         }
-        result["ok"] = True
+        result["ok"] = not meta.failed
+        if meta.failed:
+            result["error"] = meta.error
 
     search_term = (title or result["meta"].get("title") or "").strip()
     if search_term:
@@ -119,6 +121,9 @@ def lookup_metadata(
                 }
                 for m in metadata.jikan_search_anime(search_term)[:6]
             ]
+        elif category in ("manga", "manhwa", "manhua"):
+            from ..services.catalog import cover_matches
+            result["matches"] = cover_matches(category, search_term)
         elif category == "movie":
             result["matches"] = [
                 {
@@ -204,10 +209,8 @@ def add_submit(
             payload.cover_image_url = scraped.image_url
         if not payload.description and scraped.description:
             payload.description = scraped.description
-        if payload.chapter is None and scraped.chapter is not None and payload.category_slug in ("manga", "manhwa", "manhua"):
-            payload.chapter = int(scraped.chapter)
-        if payload.episode is None and scraped.episode is not None and payload.category_slug == "anime":
-            payload.episode = int(scraped.episode)
+        # Availability is NOT the user's reading/watching progress.
+        # Ambiguous catalog matches are offered by /api/lookup for explicit selection.
 
     try:
         item = content_service.create_content(db, user.id, payload)
@@ -587,3 +590,52 @@ def api_delete_history(
     if not ok:
         raise HTTPException(status_code=404, detail="History entry not found")
     return {"ok": True}
+
+
+@router.post('/content/{content_id}/source-links', response_class=HTMLResponse)
+def source_links_page(request: Request, content_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services import source_links
+    try:
+        item = content_service.get_owned_content(db, user.id, content_id)
+    except ContentError:
+        raise HTTPException(status_code=404, detail='Item not found')
+    links, error = source_links.discover(item, user.id)
+    return templates.TemplateResponse(request, 'source_links.html', page_context(request,user,db,
+        title='Source chapter / episode links', item=item, links=links, error=error))
+
+
+@router.post('/content/{content_id}/open-numbered')
+def open_numbered(request: Request, content_id: int, token: str = Form(...), user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..services import source_links
+    try:
+        item = content_service.get_owned_content(db,user.id,content_id)
+    except ContentError:
+        raise HTTPException(status_code=404, detail='Item not found')
+    try:
+        url,field,number = source_links.verify(token,user.id,content_id)
+        if source_links.numbered(url,item.category.slug) != (field,number): raise ValueError('Invalid numbered link.')
+        # Opening an older chapter never decreases the recorded high-water mark.
+        current = item.current_episode if field == 'episode' else item.current_chapter
+        if number > (current or 0):
+            content_service.update_progress(db,user.id,content_id,**{field:number},mark_update_read=False)
+        content_service.mark_opened(db,user.id,content_id)
+    except (ValueError, ContentError) as exc:
+        raise HTTPException(status_code=400,detail=str(exc))
+    return RedirectResponse(url,status_code=303)
+
+
+@router.post('/content/{content_id}/refresh-cover')
+def refresh_cover(request: Request, content_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    try:
+        item = content_service.get_owned_content(db,user.id,content_id)
+    except ContentError:
+        raise HTTPException(status_code=404,detail='Item not found')
+    meta = metadata.scrape_page(item.url)
+    if not meta.image_url:
+        return RedirectResponse(f'/content/{content_id}?msg=cover-unavailable',status_code=303)
+    item.cover_image_url = meta.image_url
+    # Refreshing one item must not remove a cache file shared by another item.
+    item.cover_cached_path = thumbnails.download_and_cache(meta.image_url)
+    item.updated_at = utcnow()
+    db.commit()
+    return RedirectResponse(f'/content/{content_id}?msg=cover-refreshed',status_code=303)

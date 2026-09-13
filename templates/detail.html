@@ -1,15 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 
-{% if message %}
+{% if message == 'cover-unavailable' %}
+<div class="alert alert-warn">No cover could be retrieved from this source. Your existing cover was kept. Use Edit → Find metadata to choose a catalog cover, or enter an image URL manually.</div>
+{% elif message %}
 <div class="alert alert-success" data-autohide><span>✅</span><span>
   {% if message == 'added' %}Saved to your library.
   {% elif message == 'updated' %}Changes saved.
+  {% elif message == 'cover-refreshed' %}Cover refreshed from your saved page.
   {% elif message == 'url-updated' %}URL replaced. The old link is still in the history below.
   {% else %}Done.{% endif %}
 </span></div>
 {% endif %}
 
+{% if item.category.slug in ['anime','manga','manhwa','manhua'] %}
+<form method="post" action="/content/{{ item.id }}/source-links" style="margin-bottom:16px">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<button class="btn" type="submit">Find chapter / episode links</button>
+<span class="page-sub">Review links, then open & mark progress.</span>
+</form>
+{% endif %}
+
+<form method="post" action="/content/{{ item.id }}/refresh-cover" style="margin-bottom:16px">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<button class="btn" type="submit">Refresh cover from saved URL</button>
+</form>
 <div class="detail-hero">
   <div class="detail-cover">
     {% if item.cover_src %}
